@@ -1882,6 +1882,58 @@ export default function App() {
         </div>
 
         <div>
+          <h3 className="text-xl font-black text-indigo-950 mb-3 bg-purple-100 inline-block px-3 py-1 rounded-lg border-2 border-purple-300">
+            Challenge Quizzes 🏆
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-4 flex flex-col justify-between text-white shadow-md border-4 border-indigo-400">
+              <div>
+                <h4 className="font-black text-xl mb-1">Mixed Scope</h4>
+                <p className="font-bold text-sm text-indigo-100">
+                  All addition and subtraction rules combined!
+                </p>
+              </div>
+              <button
+                onClick={() => startNewQuiz("ALL")}
+                className="mt-4 bg-white text-indigo-900 border-2 border-indigo-200 py-2 rounded-xl font-black text-sm hover:bg-indigo-50 active:scale-95 transition-transform"
+              >
+                Start Quiz (Up to 300 ⭐)
+              </button>
+            </div>
+
+            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-4 flex flex-col justify-between text-white shadow-md border-4 border-emerald-400">
+              <div>
+                <h4 className="font-black text-xl mb-1">All Addition</h4>
+                <p className="font-bold text-sm text-emerald-100">
+                  Every addition rule from +1 to +10!
+                </p>
+              </div>
+              <button
+                onClick={() => startNewQuiz("ADD")}
+                className="mt-4 bg-white text-emerald-900 border-2 border-emerald-200 py-2 rounded-xl font-black text-sm hover:bg-emerald-50 active:scale-95 transition-transform"
+              >
+                Start Quiz (Up to 300 ⭐)
+              </button>
+            </div>
+
+            <div className="bg-gradient-to-br from-orange-500 to-rose-600 rounded-2xl p-4 flex flex-col justify-between text-white shadow-md border-4 border-orange-400">
+              <div>
+                <h4 className="font-black text-xl mb-1">All Subtraction</h4>
+                <p className="font-bold text-sm text-orange-100">
+                  Every subtraction rule from -1 to -10!
+                </p>
+              </div>
+              <button
+                onClick={() => startNewQuiz("SUB")}
+                className="mt-4 bg-white text-orange-900 border-2 border-orange-200 py-2 rounded-xl font-black text-sm hover:bg-orange-50 active:scale-95 transition-transform"
+              >
+                Start Quiz (Up to 300 ⭐)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div>
           <h3 className="text-xl font-black text-indigo-950 mb-3 bg-emerald-100 inline-block px-3 py-1 rounded-lg">
             Addition Rules ➡️
           </h3>

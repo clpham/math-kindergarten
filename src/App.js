@@ -476,7 +476,7 @@ const sound = new SoundEngine();
 // ==========================================
 // 4. QUESTION GENERATOR HELPER
 // ==========================================
-function generateMathQuestion(ruleKey = "ALL", previousQuestionKey = "") {
+function generateMathQuestion(ruleKey = "ALL", usedKeys = []) {
   const ruleKeys = Object.keys(MATH_RULES);
   let chosenRuleKey =
     ruleKey === "ALL"
@@ -487,6 +487,7 @@ function generateMathQuestion(ruleKey = "ALL", previousQuestionKey = "") {
   let startNum = 5;
   let answer = 6;
   let attempts = 0;
+  let generatedKey = "";
 
   do {
     let maxOpHop = rule.val;
@@ -502,8 +503,10 @@ function generateMathQuestion(ruleKey = "ALL", previousQuestionKey = "") {
       startNum = Math.floor(Math.random() * (30 - minOpHop + 1)) + minOpHop;
       answer = startNum - rule.val;
     }
+
+    generatedKey = `${startNum}${rule.id}`;
     attempts++;
-  } while (`${startNum}${rule.id}` === previousQuestionKey && attempts < 10);
+  } while (usedKeys.includes(generatedKey) && attempts < 50);
 
   let steps = [];
   const s = startNum;
@@ -1333,7 +1336,11 @@ export default function App() {
   // Practice Mode
   const loadNewPracticeQuestion = (ruleKeyOverride = selectedRuleKey) => {
     clearAnimTimers();
-    const nextQ = generateMathQuestion(ruleKeyOverride, practiceQuestion?.key);
+    // Wrap the previous key in an array to match the new usedKeys parameter
+    const nextQ = generateMathQuestion(
+      ruleKeyOverride,
+      practiceQuestion?.key ? [practiceQuestion.key] : [],
+    );
     setPracticeQuestion(nextQ);
     setPracticeSelectedAns(null);
     setPracticeIsCorrect(null);
@@ -1450,10 +1457,11 @@ export default function App() {
             : [scope];
 
     const generated = [];
-    let prevKey = "";
+    const usedKeys = []; // Array to track all questions in the current quiz
+
     for (let i = 0; i < QUIZ_TOTAL_QUESTIONS; i++) {
-      const q = generateMathQuestion(pool[i % pool.length], prevKey);
-      prevKey = q.key;
+      const q = generateMathQuestion(pool[i % pool.length], usedKeys);
+      usedKeys.push(q.key); // Lock in the question so it cannot be repeated
       generated.push(q);
     }
     generated.sort(() => Math.random() - 0.5);

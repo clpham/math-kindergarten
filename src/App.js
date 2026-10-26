@@ -810,12 +810,29 @@ function generateMathQuestion(ruleKey = "ALL", previousQuestionKey = "") {
   };
 }
 
-const getRewardForScope = (scope) => {
-  if (scope === "ALL" || scope === "ADD" || scope === "SUB") return 300;
-  const val = parseInt(scope.replace(/[^0-9]/g, ""), 10);
-  if (val === 1) return 25;
-  if (val === 10) return 250;
-  return val * 25;
+// ==========================================
+// NEW PROPORTIONAL REWARD ALGORITHM
+// ==========================================
+const calculateQuizReward = (quizCategory, correctAnswers) => {
+  let multiplier = 1;
+
+  if (["ALL", "ADD", "SUB"].includes(quizCategory)) {
+    multiplier = 12;
+  } else {
+    const parsedValue = parseInt(quizCategory, 10);
+    if (!isNaN(parsedValue)) {
+      multiplier = Math.abs(parsedValue);
+    }
+  }
+
+  const perQuestionReward = 2 * multiplier;
+  let totalStars = correctAnswers * perQuestionReward;
+
+  if (correctAnswers === 10) {
+    totalStars += 5 * multiplier;
+  }
+
+  return totalStars;
 };
 
 // ==========================================
@@ -1496,13 +1513,15 @@ export default function App() {
           setQuizCompleted(true);
           const totalScore = newAnswers.filter((a) => a.isCorrect).length;
           const isPerfect = totalScore === quizQuestions.length;
-          const starsReward = isPerfect ? getRewardForScope(quizRuleScope) : 1;
+
+          // Apply new proportional algorithm
+          const starsReward = calculateQuizReward(quizRuleScope, totalScore);
 
           sound.playSuccess();
           sound.speak(
             isPerfect
               ? `Perfect score! You got ${totalScore} out of ${quizQuestions.length} and earned ${starsReward} stars!`
-              : `Quiz complete! You got ${totalScore} out of ${quizQuestions.length}!`,
+              : `Quiz complete! You earned ${starsReward} stars!`,
           );
 
           updateActiveStudentState((prevStudent) => {
@@ -1996,7 +2015,9 @@ export default function App() {
     if (quizCompleted) {
       const score = quizAnswers.filter((a) => a.isCorrect).length;
       const isPerfect = score === quizQuestions.length;
-      const reward = isPerfect ? getRewardForScope(quizRuleScope) : 1;
+
+      // Calculate display reward using the new algorithm
+      const reward = calculateQuizReward(quizRuleScope, score);
 
       return (
         <div className="max-w-2xl mx-auto px-4 py-8 text-center">
@@ -2017,12 +2038,10 @@ export default function App() {
                 </span>
               </div>
             ) : (
-              <div className="text-lg font-bold text-rose-500 mb-8 flex flex-col items-center justify-center gap-2">
-                <span>
-                  Keep practicing! You need a perfect score to earn big stars.
-                </span>
-                <span className="text-sm text-amber-600 font-bold bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-                  (+1 pity star earned)
+              <div className="text-lg font-bold text-indigo-600 mb-8 flex flex-col items-center justify-center gap-2">
+                <span>Great effort! You are making progress.</span>
+                <span className="text-2xl text-amber-500 font-black bg-amber-50 px-4 py-2 rounded-full border-2 border-amber-200">
+                  +{reward} Stars Earned!
                 </span>
               </div>
             )}
@@ -2313,8 +2332,8 @@ export default function App() {
           </div>
         </div>
         <div className="bg-indigo-50 border-2 border-indigo-200 p-4 rounded-xl mb-6 text-indigo-900 font-bold text-center">
-          Get perfect scores on quizzes to earn massive amounts of stars! Harder
-          rules give more stars!
+          Earn stars by practicing and taking quizzes! Harder rules give higher
+          rewards, and perfect scores give a huge bonus!
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
           {STICKERS.map((st) => {

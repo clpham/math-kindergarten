@@ -2106,13 +2106,24 @@ export default function App() {
     const isAnswered = quizLockedChoice !== null;
     return (
       <div className="max-w-4xl mx-auto px-2 py-4 space-y-3">
-        <div className="flex justify-between items-center bg-white p-3 rounded-2xl border-2 border-amber-300">
-          <span className="font-black text-amber-600 uppercase text-sm">
-            No Retries
-          </span>
-          <span className="font-black text-indigo-900">
+        <div className="flex justify-between items-center bg-white p-3 rounded-2xl border-2 border-amber-300 mb-3 shadow-sm">
+          <div className="flex flex-col">
+            <span className="font-black text-amber-600 uppercase text-xs tracking-wider">
+              No Retries
+            </span>
+            <span className="font-black text-indigo-950 text-lg sm:text-xl flex items-center gap-2">
+              {quizRuleScope === "ALL"
+                ? "🎲 Mixed Scope"
+                : quizRuleScope === "ADD"
+                  ? "➕ All Addition"
+                  : quizRuleScope === "SUB"
+                    ? "➖ All Subtraction"
+                    : `🎯 Rule: ${quizRuleScope}`}
+            </span>
+          </div>
+          <div className="font-black text-indigo-900 text-lg bg-indigo-100 px-4 py-2 rounded-xl border-2 border-indigo-200">
             Q {quizCurrentIndex + 1}/{quizQuestions.length}
-          </span>
+          </div>
         </div>
         <div className="bg-indigo-50 p-4 rounded-3xl border-2 border-indigo-200 text-center text-4xl font-black text-indigo-950">
           {currentQ.startNum}{" "}

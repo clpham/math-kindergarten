@@ -1447,23 +1447,61 @@ export default function App() {
     clearAnimTimers();
     sound.playPop();
     setQuizRuleScope(scope);
-    const pool =
-      scope === "ADD"
-        ? ["+1", "+2", "+3", "+4", "+5", "+6", "+7", "+8", "+9", "+10"]
-        : scope === "SUB"
-          ? ["-1", "-2", "-3", "-4", "-5", "-6", "-7", "-8", "-9", "-10"]
-          : scope === "ALL"
-            ? Object.keys(MATH_RULES)
-            : [scope];
+
+    const addRules = [
+      "+1",
+      "+2",
+      "+3",
+      "+4",
+      "+5",
+      "+6",
+      "+7",
+      "+8",
+      "+9",
+      "+10",
+    ];
+    const subRules = [
+      "-1",
+      "-2",
+      "-3",
+      "-4",
+      "-5",
+      "-6",
+      "-7",
+      "-8",
+      "-9",
+      "-10",
+    ];
+
+    let pool = [];
+    if (scope === "ADD") {
+      pool = addRules;
+    } else if (scope === "SUB") {
+      pool = subRules;
+    } else if (scope === "ALL") {
+      // Shuffle both arrays, slice 5 from each, and combine for a 50/50 split
+      const randomAdd = [...addRules]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 5);
+      const randomSub = [...subRules]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 5);
+      pool = [...randomAdd, ...randomSub];
+    } else {
+      pool = [scope];
+    }
 
     const generated = [];
     const usedKeys = []; // Array to track all questions in the current quiz
 
     for (let i = 0; i < QUIZ_TOTAL_QUESTIONS; i++) {
+      // Since 'pool' is either length 10 or 1, i % pool.length distributes perfectly
       const q = generateMathQuestion(pool[i % pool.length], usedKeys);
-      usedKeys.push(q.key); // Lock in the question so it cannot be repeated
+      usedKeys.push(q.key);
       generated.push(q);
     }
+
+    // Shuffle the final 10 questions so the 5 ADD and 5 SUB questions are mixed randomly
     generated.sort(() => Math.random() - 0.5);
 
     setQuizQuestions(generated);

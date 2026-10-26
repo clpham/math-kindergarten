@@ -1,6 +1,7 @@
 {
-  "name": "hopandcount",
+  "name": "math_kindergarten",
   "version": "0.1.0",
+  "homepage": "/math_kindergarten",
   "private": true,
   "dependencies": {
     "@testing-library/dom": "^10.4.2",
@@ -14,6 +15,7 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
+    "project-name": "echo $npm_package_name",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",

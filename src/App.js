@@ -20,8 +20,7 @@ import {
 import PocketBase from "pocketbase";
 
 // Initialize PocketBase (Update this URL to match your server if hosted remotely)
-//const pb = new PocketBase('http://127.0.0.1:8090');
-const pb = new PocketBase("http://eq14x:8090");
+const pb = new PocketBase("https://eq14x.tail2c693e.ts.net/pocketbase");
 pb.autoCancellation(false);
 
 // ==========================================

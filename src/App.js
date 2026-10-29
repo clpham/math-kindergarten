@@ -280,6 +280,32 @@ const MATH_RULES = {
     border: "border-purple-400",
     text: "text-purple-800",
   },
+  COUNT5: {
+    id: "COUNT5",
+    op: "+",
+    val: 5,
+    max: 200,
+    label: "Count by 5s",
+    title: "Up to 200",
+    voiceRule: "Count up by fives!",
+    color: "from-pink-400 to-rose-600",
+    bgLight: "bg-pink-50",
+    border: "border-pink-400",
+    text: "text-pink-800",
+  },
+  COUNT10: {
+    id: "COUNT10",
+    op: "+",
+    val: 10,
+    max: 200,
+    label: "Count by 10s",
+    title: "Up to 200",
+    voiceRule: "Count up by tens!",
+    color: "from-violet-400 to-purple-600",
+    bgLight: "bg-violet-50",
+    border: "border-violet-400",
+    text: "text-violet-800",
+  },
 };
 
 const AVATARS = [
@@ -475,7 +501,11 @@ const sound = new SoundEngine();
 // ==========================================
 // 4. QUESTION GENERATOR HELPER
 // ==========================================
-function generateMathQuestion(ruleKey = "ALL", usedKeys = []) {
+function generateMathQuestion(
+  ruleKey = "ALL",
+  usedKeys = [],
+  customStart = null,
+) {
   const ruleKeys = Object.keys(MATH_RULES);
   let chosenRuleKey =
     ruleKey === "ALL"
@@ -489,18 +519,31 @@ function generateMathQuestion(ruleKey = "ALL", usedKeys = []) {
   let generatedKey = "";
 
   do {
-    let maxOpHop = rule.val;
-    if (["+8", "+9", "+10"].includes(rule.id)) maxOpHop = 10;
-
-    let minOpHop = rule.val;
-    if (["-8", "-9", "-10"].includes(rule.id)) minOpHop = 10;
-
-    if (rule.op === "+") {
-      startNum = Math.floor(Math.random() * (30 - maxOpHop + 1));
+    if (
+      customStart !== null &&
+      (rule.id === "COUNT5" || rule.id === "COUNT10")
+    ) {
+      startNum = customStart;
+      answer = startNum + rule.val;
+    } else if (rule.max === 200) {
+      const maxMultiplier = rule.max / rule.val - 1;
+      const multiplier = Math.floor(Math.random() * maxMultiplier) + 1;
+      startNum = multiplier * rule.val;
       answer = startNum + rule.val;
     } else {
-      startNum = Math.floor(Math.random() * (30 - minOpHop + 1)) + minOpHop;
-      answer = startNum - rule.val;
+      let maxOpHop = rule.val;
+      if (["+8", "+9", "+10"].includes(rule.id)) maxOpHop = 10;
+
+      let minOpHop = rule.val;
+      if (["-8", "-9", "-10"].includes(rule.id)) minOpHop = 10;
+
+      if (rule.op === "+") {
+        startNum = Math.floor(Math.random() * (30 - maxOpHop + 1));
+        answer = startNum + rule.val;
+      } else {
+        startNum = Math.floor(Math.random() * (30 - minOpHop + 1)) + minOpHop;
+        answer = startNum - rule.val;
+      }
     }
 
     generatedKey = `${startNum}${rule.id}`;
@@ -792,12 +835,37 @@ function generateMathQuestion(ruleKey = "ALL", usedKeys = []) {
         },
       ];
       break;
+    case "COUNT5":
+    case "COUNT10":
+      steps = [
+        {
+          from: s,
+          to: answer,
+          skipped: null,
+          label: `+${rule.val}!`,
+          voice: `And ${rule.val} more makes ${answer}!`,
+        },
+      ];
+      break;
   }
 
   const optionsSet = new Set([answer]);
   while (optionsSet.size < 4) {
-    const rand = Math.floor(Math.random() * 31);
-    optionsSet.add(rand);
+    if (rule.max === 200) {
+      if (customStart !== null) {
+        // Create distractors relative to the custom answer
+        const offset = (Math.floor(Math.random() * 5) - 2) * rule.val;
+        const rand = answer + offset;
+        if (rand >= 0 && rand !== answer) optionsSet.add(rand);
+      } else {
+        const rand =
+          (Math.floor(Math.random() * (rule.max / rule.val)) + 1) * rule.val;
+        if (rand <= rule.max) optionsSet.add(rand);
+      }
+    } else {
+      const rand = Math.floor(Math.random() * 31);
+      optionsSet.add(rand);
+    }
   }
 
   const sortedOptions = Array.from(optionsSet).sort((a, b) => a - b);
@@ -850,8 +918,14 @@ function InteractiveNumberLine({
   isCorrect = null,
 }) {
   const scrollContainerRef = useRef(null);
-  const numbers = Array.from({ length: 31 }, (_, i) => i);
   const { startNum, rule, steps, answer } = question;
+
+  // Stretch the axis if the user's custom number exceeds the default max
+  let maxAxis = rule.max || 30;
+  if (rule.max && answer > maxAxis) {
+    maxAxis = Math.ceil(answer / rule.val) * rule.val + rule.val * 2;
+  }
+  const getX = (num) => 30 + (num / maxAxis) * 1740;
 
   let currentMascotNum = startNum;
   if (animStepIndex >= 0 && steps[animStepIndex]) {
@@ -863,7 +937,8 @@ function InteractiveNumberLine({
   useEffect(() => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
-      const xPos = 30 + (currentMascotNum / 30) * 1740;
+      //const xPos = 30 + (currentMascotNum / 30) * 1740;
+      const xPos = getX(currentMascotNum);
       const fraction = xPos / 1800;
       const scrollTarget =
         fraction * container.scrollWidth - container.clientWidth / 2;
@@ -875,6 +950,15 @@ function InteractiveNumberLine({
     }
   }, [currentMascotNum]);
 
+  const axisStep = rule.max ? rule.val : 1;
+  const numbersCount = Math.floor(maxAxis / axisStep) + 1;
+  const numbers = Array.from({ length: numbersCount }, (_, i) => i * axisStep);
+  //
+  // Ensure non-standard custom starts (e.g., 17 for +5) render as lily pads
+  if (rule.max && !numbers.includes(startNum)) numbers.push(startNum);
+  if (rule.max && !numbers.includes(answer)) numbers.push(answer);
+  numbers.sort((a, b) => a - b);
+
   const visibleSteps = useMemo(() => {
     if (animStepIndex >= 0) return steps.slice(0, animStepIndex + 1);
     if (showHintPreview) return steps;
@@ -885,7 +969,6 @@ function InteractiveNumberLine({
     return visibleSteps.filter((s) => s.skipped !== null).map((s) => s.skipped);
   }, [visibleSteps]);
 
-  const getX = (num) => 30 + (num / 30) * 1740;
   const baselineY = 85;
 
   return (
@@ -933,7 +1016,7 @@ function InteractiveNumberLine({
           <line
             x1={getX(0)}
             y1={baselineY}
-            x2={getX(30)}
+            x2={getX(maxAxis)}
             y2={baselineY}
             stroke="#94a3b8"
             strokeWidth="6"
@@ -1134,6 +1217,7 @@ export default function App() {
   const [expandedQuizzes, setExpandedQuizzes] = useState({});
 
   // Practice State
+  const [practiceCustomStart, setPracticeCustomStart] = useState("");
   const [selectedRuleKey, setSelectedRuleKey] = useState("+1");
   const [practiceQuestion, setPracticeQuestion] = useState(() =>
     generateMathQuestion("+1"),
@@ -1333,14 +1417,19 @@ export default function App() {
   };
 
   // Practice Mode
-  const loadNewPracticeQuestion = (ruleKeyOverride = selectedRuleKey) => {
+  const loadNewPracticeQuestion = (
+    ruleKeyOverride = selectedRuleKey,
+    customStart = null,
+  ) => {
     clearAnimTimers();
     // Wrap the previous key in an array to match the new usedKeys parameter
     const nextQ = generateMathQuestion(
       ruleKeyOverride,
       practiceQuestion?.key ? [practiceQuestion.key] : [],
+      customStart,
     );
     setPracticeQuestion(nextQ);
+    setPracticeCustomStart("");
     setPracticeSelectedAns(null);
     setPracticeIsCorrect(null);
     setPracticeAnimStep(-1);
@@ -1884,6 +1973,50 @@ export default function App() {
           <h3 className="text-xl font-black text-indigo-950 mb-3 bg-purple-100 inline-block px-3 py-1 rounded-lg border-2 border-purple-300">
             Challenge Quizzes 🏆
           </h3>
+          <div>
+            <h3 className="text-xl font-black text-indigo-950 mb-3 bg-pink-100 inline-block px-3 py-1 rounded-lg">
+              Skip Counting (Up to 200) 🦘
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {["COUNT5", "COUNT10"].map((rk) => {
+                const rule = MATH_RULES[rk];
+                return (
+                  <div
+                    key={rk}
+                    className={`${rule.bgLight} border-2 ${rule.border} rounded-2xl p-3 flex flex-col justify-between`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <span
+                        className={`bg-gradient-to-br ${rule.color} text-white font-black text-lg px-2 py-1 rounded-lg`}
+                      >
+                        {rule.label}
+                      </span>
+                    </div>
+                    <h4 className={`font-black text-sm mt-2 ${rule.text}`}>
+                      {rule.title}
+                    </h4>
+                    <div className="flex gap-1 mt-3">
+                      <button
+                        onClick={() => {
+                          handlePracticeRuleSelect(rk);
+                          setCurrentView("PRACTICE");
+                        }}
+                        className="flex-1 bg-white text-pink-800 border-2 border-pink-300 py-1 rounded-lg font-black text-xs"
+                      >
+                        Practice
+                      </button>
+                      <button
+                        onClick={() => startNewQuiz(rk)}
+                        className="flex-1 bg-pink-500 text-white border-2 border-pink-600 py-1 rounded-lg font-black text-xs"
+                      >
+                        Quiz
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-4 flex flex-col justify-between text-white shadow-md border-4 border-indigo-400">
               <div>
@@ -2031,6 +2164,7 @@ export default function App() {
 
   const renderPracticeView = () => {
     const { startNum, rule, answer, options } = practiceQuestion;
+    const isCustomizableRule = rule.id === "COUNT5" || rule.id === "COUNT10";
     return (
       <div className="max-w-4xl mx-auto px-2 py-4 space-y-3">
         <div
@@ -2063,6 +2197,31 @@ export default function App() {
           </div>
         </div>
 
+        {isCustomizableRule && (
+          <div className="bg-white p-3 rounded-2xl border-2 border-pink-300 shadow-sm flex items-center gap-3">
+            <span className="font-bold text-pink-900 text-sm sm:text-base">
+              Custom Start Number:
+            </span>
+            <input
+              type="number"
+              value={practiceCustomStart}
+              onChange={(e) => setPracticeCustomStart(e.target.value)}
+              className="w-24 p-2 border-2 border-pink-200 rounded-xl font-black text-center text-indigo-950 outline-none focus:border-pink-500"
+              placeholder={startNum}
+            />
+            <button
+              onClick={() => {
+                const val = parseInt(practiceCustomStart, 10);
+                if (!isNaN(val) && val >= 0)
+                  loadNewPracticeQuestion(rule.id, val);
+              }}
+              className="bg-pink-500 hover:bg-pink-600 text-white font-black px-4 py-2 rounded-xl transition-colors"
+            >
+              Start Hops
+            </button>
+          </div>
+        )}
+
         <InteractiveNumberLine
           question={practiceQuestion}
           mascotEmoji={activeStudent?.avatarEmoji}
@@ -2086,8 +2245,19 @@ export default function App() {
                 Great Job!
               </span>
               <button
-                onClick={() => loadNewPracticeQuestion()}
-                className="bg-emerald-500 text-white font-black px-6 py-2 rounded-xl"
+                onClick={() => {
+                  const currentRule = practiceQuestion.rule.id;
+                  if (currentRule === "COUNT5" || currentRule === "COUNT10") {
+                    // Chain the previous answer as the new starting number
+                    loadNewPracticeQuestion(
+                      currentRule,
+                      practiceQuestion.answer,
+                    );
+                  } else {
+                    loadNewPracticeQuestion();
+                  }
+                }}
+                className="bg-emerald-500 text-white font-black px-6 py-2 rounded-xl transition-transform active:scale-95"
               >
                 Next →
               </button>

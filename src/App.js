@@ -1682,7 +1682,7 @@ export default function App() {
     setQuizCompleted(false);
     setQuizActive(true);
     setCurrentView("QUIZ");
-    sound.speak(`Quiz time! Question 1.`);
+    sound.speak(`Quiz time! ${QUIZ_TOTAL_QUESTIONS} questions.`);
   };
 
   const handleQuizAnswerTap = (chosenNum) => {

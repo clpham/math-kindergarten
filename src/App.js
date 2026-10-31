@@ -386,7 +386,9 @@ class SoundEngine {
   constructor() {
     this.ctx = null;
     this.muted = false;
+    this.currentAudio = null; // Tracks active audio to prevent overlapping speech
   }
+
   init() {
     if (!this.ctx && typeof window !== "undefined") {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -394,6 +396,7 @@ class SoundEngine {
     }
     if (this.ctx && this.ctx.state === "suspended") this.ctx.resume();
   }
+
   playPop() {
     if (this.muted) return;
     this.init();
@@ -413,6 +416,7 @@ class SoundEngine {
     osc.start();
     osc.stop(this.ctx.currentTime + 0.09);
   }
+
   playHop(isBigSkip = false) {
     if (this.muted) return;
     this.init();
@@ -440,6 +444,7 @@ class SoundEngine {
     osc.start();
     osc.stop(this.ctx.currentTime + duration);
   }
+
   playSuccess() {
     if (this.muted) return;
     this.init();
@@ -459,6 +464,7 @@ class SoundEngine {
       osc.stop(startTime + 0.32);
     });
   }
+
   playGentleOops() {
     if (this.muted) return;
     this.init();
@@ -478,25 +484,75 @@ class SoundEngine {
       osc.stop(startTime + 0.22);
     });
   }
-  speak(text) {
-    if (
-      this.muted ||
-      typeof window === "undefined" ||
-      !("speechSynthesis" in window)
-    )
-      return;
+
+  async speak(text) {
+    if (this.muted || typeof window === "undefined") return;
+
+    // Stop and clear the previous audio if a new speak request comes in rapidly
+    if (this.currentAudio) {
+      await waitForAudio(this.currentAudio);
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+    }
+
     try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.92;
-      utterance.pitch = 1.15;
-      window.speechSynthesis.speak(utterance);
-    } catch (e) {
-      console.warn("Speech synthesis error", e);
+      const response = await fetch(
+        "https://xps15.tail2c693e.ts.net/kokoro-tts/v1/audio/speech",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "kokoro",
+            input: text,
+            voice: "af_bella(2)+af_sarah(1)+am_michael(1)", // Adjust based on your preferred TTS voice
+            response_format: "mp3",
+            speed: 1.0,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        if (response.status === 422) {
+          const errorDetail = await response.json();
+          console.error(
+            "422 Validation Error details:",
+            JSON.stringify(errorDetail, null, 2),
+          );
+        }
+        throw new Error(`Kokoro TTS server error: ${response.status}`);
+      }
+
+      // Convert the response stream to a blob and play it via HTML5 Audio
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+
+      this.currentAudio = audio;
+
+      // Prevent memory leaks by revoking the object URL once playback finishes
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        if (this.currentAudio === audio) {
+          this.currentAudio = null;
+        }
+      };
+
+      audio.play();
+    } catch (error) {
+      console.error("Failed to fetch audio from Kokoro:", error);
     }
   }
 }
 const sound = new SoundEngine();
+
+// 1. Function that returns a Promise when the audio finishes
+function waitForAudio(audioElement) {
+  return new Promise((resolve) => {
+    audioElement.addEventListener("ended", resolve, { once: true });
+  });
+}
 
 // ==========================================
 // 4. QUESTION GENERATOR HELPER
@@ -556,7 +612,13 @@ function generateMathQuestion(
   switch (rule.id) {
     case "+1":
       steps = [
-        { from: s, to: s + 1, skipped: null, label: "+1", voice: `${s + 1}!` },
+        {
+          from: s,
+          to: s + 1,
+          skipped: null,
+          label: "+1",
+          voice: `${s} to ${s + 1}!`,
+        },
       ];
       break;
     case "+2":
@@ -566,7 +628,7 @@ function generateMathQuestion(
           to: s + 2,
           skipped: s + 1,
           label: "Skip 1!",
-          voice: `Skip to ${s + 2}!`,
+          voice: `${s} skips to ${s + 2}!`,
         },
       ];
       break;
@@ -577,7 +639,7 @@ function generateMathQuestion(
           to: s + 2,
           skipped: s + 1,
           label: "Skip 1!",
-          voice: `Skip to ${s + 2}...`,
+          voice: `${s} skips to ${s + 2}`,
         },
         {
           from: s + 2,
@@ -595,7 +657,7 @@ function generateMathQuestion(
           to: s + 2,
           skipped: s + 1,
           label: "Skip 2!",
-          voice: `Two...`,
+          voice: `${s} skips two...`,
         },
         {
           from: s + 2,
@@ -613,13 +675,19 @@ function generateMathQuestion(
           to: s + 5,
           skipped: null,
           label: "+5 Group!",
-          voice: `A group of five makes ${s + 5}!`,
+          voice: `${s} skips a group of five makes ${s + 5}!`,
         },
       ];
       break;
     case "+6":
       steps = [
-        { from: s, to: s + 5, skipped: null, label: "+5!", voice: `Five...` },
+        {
+          from: s,
+          to: s + 5,
+          skipped: null,
+          label: "+5!",
+          voice: `${s} skips a group of five...`,
+        },
         {
           from: s + 5,
           to: s + 6,
@@ -631,7 +699,13 @@ function generateMathQuestion(
       break;
     case "+7":
       steps = [
-        { from: s, to: s + 5, skipped: null, label: "+5!", voice: `Five...` },
+        {
+          from: s,
+          to: s + 5,
+          skipped: null,
+          label: "+5!",
+          voice: `${s} skips a group of five...`,
+        },
         {
           from: s + 5,
           to: s + 7,
@@ -1443,6 +1517,10 @@ export default function App() {
   const playStepAnimationSequence = (q, onComplete) => {
     clearAnimTimers();
     setPracticeAnimStep(-1);
+
+    // Increased the base delay from 1250ms to 2800ms to accommodate network TTS
+    const stepDuration = 2800;
+
     q.steps.forEach((step, idx) => {
       const t = setTimeout(
         () => {
@@ -1450,12 +1528,16 @@ export default function App() {
           sound.playHop(Math.abs(step.to - step.from) >= 2);
           sound.speak(step.voice);
         },
-        idx * 1250 + 150,
+        idx * stepDuration + 150,
       );
       animTimersRef.current.push(t);
     });
+
     if (onComplete) {
-      const finalT = setTimeout(onComplete, q.steps.length * 1250 + 400);
+      const finalT = setTimeout(
+        onComplete,
+        q.steps.length * stepDuration + 400,
+      );
       animTimersRef.current.push(finalT);
     }
   };

@@ -2424,8 +2424,29 @@ export default function App() {
                     : `🎯 Rule: ${quizRuleScope}`}
             </span>
           </div>
-          <div className="font-black text-indigo-900 text-lg bg-indigo-100 px-4 py-2 rounded-xl border-2 border-indigo-200">
-            Q {quizCurrentIndex + 1}/{quizQuestions.length}
+          {/* Replaced Q index text with solid circle indicators */}
+          <div className="flex items-center gap-1 sm:gap-1.5 bg-indigo-50/80 px-3 py-2 rounded-xl border-2 border-indigo-100 flex-wrap justify-end">
+            {quizQuestions.map((_, i) => {
+              if (i < quizAnswers.length) {
+                return quizAnswers[i].isCorrect ? (
+                  <CheckCircle2
+                    key={i}
+                    className="w-5 h-5 sm:w-6 sm:h-6 text-white fill-emerald-500 drop-shadow-sm"
+                  />
+                ) : (
+                  <XCircle
+                    key={i}
+                    className="w-5 h-5 sm:w-6 sm:h-6 text-white fill-rose-500 drop-shadow-sm"
+                  />
+                );
+              }
+              return (
+                <div
+                  key={i}
+                  className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-200 border-2 border-slate-300 shadow-inner"
+                ></div>
+              );
+            })}
           </div>
         </div>
         <div className="bg-indigo-50 p-4 rounded-3xl border-2 border-indigo-200 text-center text-4xl font-black text-indigo-950">

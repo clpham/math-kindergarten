@@ -497,7 +497,7 @@ class SoundEngine {
 
     try {
       const response = await fetch(
-        "https://xps15.tail2c693e.ts.net/kokoro-tts/v1/audio/speech",
+        "https://xps15.tail2c693e.ts.net:8443/v1/audio/speech",
         {
           method: "POST",
           headers: {

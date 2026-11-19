@@ -15,7 +15,12 @@ import {
   Home,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Download,
+  BookOpen,
+  Plus,
+  Minus,
 } from "lucide-react";
 import PocketBase from "pocketbase";
 
@@ -31,6 +36,57 @@ const LS_ACTIVE_ID_KEY = "hop_math_active_student_local";
 // ==========================================
 // 2. CURRICULUM RULES & CONSTANTS
 // ==========================================
+const COIN_SPECS = {
+  quarter: {
+    id: "quarter",
+    name: "Quarter",
+    value: 25,
+    short: "Q",
+    tip: "Biggest silver coin. Worth 25 cents!",
+    sizeClass: "w-20 h-20 sm:w-24 sm:h-24",
+    textClass: "text-xl sm:text-2xl",
+    subClass: "text-[10px]",
+    gradient:
+      "from-slate-200 via-slate-100 to-slate-300 border-slate-500 text-slate-800",
+  },
+  dime: {
+    id: "dime",
+    name: "Dime",
+    value: 10,
+    short: "D",
+    tip: "Smallest silver coin, but worth 10 cents!",
+    sizeClass: "w-14 h-14 sm:w-16 sm:h-16",
+    textClass: "text-base sm:text-lg",
+    subClass: "text-[8px]",
+    gradient:
+      "from-zinc-200 via-white to-zinc-300 border-zinc-500 text-zinc-800",
+  },
+  nickel: {
+    id: "nickel",
+    name: "Nickel",
+    value: 5,
+    short: "N",
+    tip: "Medium silver coin. Worth 5 cents!",
+    sizeClass: "w-16 h-16 sm:w-20 sm:h-20",
+    textClass: "text-lg sm:text-xl",
+    subClass: "text-[9px]",
+    gradient:
+      "from-stone-200 via-stone-100 to-stone-300 border-stone-500 text-stone-800",
+  },
+  penny: {
+    id: "penny",
+    name: "Penny",
+    value: 1,
+    short: "P",
+    tip: "Brown copper coin. Worth 1 cent!",
+    sizeClass: "w-15 h-15 sm:w-[70px] sm:h-[70px]",
+    textClass: "text-base sm:text-lg",
+    subClass: "text-[9px]",
+    gradient:
+      "from-amber-600 via-orange-400 to-amber-700 border-amber-900 text-amber-950",
+  },
+};
+
 const MATH_RULES = {
   "+1": {
     id: "+1",
@@ -280,6 +336,8 @@ const MATH_RULES = {
     border: "border-purple-400",
     text: "text-purple-800",
   },
+
+  // Skip & Sliding Counts
   COUNT5: {
     id: "COUNT5",
     op: "+",
@@ -349,6 +407,140 @@ const MATH_RULES = {
     border: "border-amber-400",
     text: "text-amber-800",
   },
+
+  // Counting Coins Lessons
+  COINS_PENNY: {
+    id: "COINS_PENNY",
+    category: "COINS",
+    coinMode: "penny",
+    op: "+",
+    val: 2,
+    label: "Pennies (1¢)",
+    title: "Count by 1s",
+    voiceRule: "Each penny is worth one cent! Count by ones.",
+    color: "from-amber-600 to-orange-700",
+    bgLight: "bg-amber-50",
+    border: "border-amber-500",
+    text: "text-amber-900",
+  },
+  COINS_NICKEL: {
+    id: "COINS_NICKEL",
+    category: "COINS",
+    coinMode: "nickel",
+    op: "+",
+    val: 5,
+    label: "Nickels (5¢)",
+    title: "Count by 5s",
+    voiceRule: "Each nickel is worth five cents! Count by fives.",
+    color: "from-slate-500 to-stone-700",
+    bgLight: "bg-stone-100",
+    border: "border-stone-400",
+    text: "text-stone-800",
+  },
+  COINS_DIME: {
+    id: "COINS_DIME",
+    category: "COINS",
+    coinMode: "dime",
+    op: "+",
+    val: 6,
+    label: "Dimes (10¢)",
+    title: "Count by 10s",
+    voiceRule: "Each dime is worth ten cents! Count by tens.",
+    color: "from-sky-500 to-slate-600",
+    bgLight: "bg-sky-50",
+    border: "border-sky-400",
+    text: "text-sky-900",
+  },
+  COINS_QUARTER: {
+    id: "COINS_QUARTER",
+    category: "COINS",
+    coinMode: "quarter",
+    op: "+",
+    val: 8,
+    label: "Quarters (25¢)",
+    title: "Count by 25s",
+    voiceRule: "Each quarter is worth twenty-five cents! 25, 50, 75, 100!",
+    color: "from-indigo-500 to-slate-700",
+    bgLight: "bg-indigo-50",
+    border: "border-indigo-400",
+    text: "text-indigo-900",
+  },
+  COINS_MIXED: {
+    id: "COINS_MIXED",
+    category: "COINS",
+    coinMode: "mixed",
+    op: "+",
+    val: 10,
+    label: "Mixed Coins",
+    title: "Count Biggest First",
+    voiceRule:
+      "Count the biggest value coins first, then add the smaller ones!",
+    color: "from-yellow-500 to-amber-600",
+    bgLight: "bg-yellow-50",
+    border: "border-yellow-500",
+    text: "text-amber-900",
+  },
+
+  // Place Value: 1, 2, and 3-Digit Numbers
+  PV_1DIGIT: {
+    id: "PV_1DIGIT",
+    category: "PLACE_VALUE",
+    pvMode: "1digit",
+    op: "+",
+    val: 2,
+    label: "1-Digit (Ones)",
+    title: "Numbers 1 to 9",
+    voiceRule: "A one-digit number only has the Ones place!",
+    color: "from-emerald-500 to-green-600",
+    bgLight: "bg-emerald-50",
+    border: "border-emerald-400",
+    text: "text-emerald-900",
+  },
+  PV_2DIGIT: {
+    id: "PV_2DIGIT",
+    category: "PLACE_VALUE",
+    pvMode: "2digit",
+    op: "+",
+    val: 5,
+    label: "2-Digit (T & O)",
+    title: "Tens & Ones Place",
+    voiceRule:
+      "In a two-digit number, the left digit is Tens and the right digit is Ones!",
+    color: "from-sky-500 to-blue-600",
+    bgLight: "bg-sky-50",
+    border: "border-sky-400",
+    text: "text-sky-900",
+  },
+  PV_3DIGIT: {
+    id: "PV_3DIGIT",
+    category: "PLACE_VALUE",
+    pvMode: "3digit",
+    op: "+",
+    val: 8,
+    label: "3-Digit (H, T, O)",
+    title: "Hundreds, Tens & Ones",
+    voiceRule:
+      "In a three-digit number, read left to right: Hundreds, Tens, and Ones!",
+    color: "from-purple-500 to-indigo-600",
+    bgLight: "bg-purple-50",
+    border: "border-purple-400",
+    text: "text-purple-900",
+  },
+  PV_MIXED: {
+    id: "PV_MIXED",
+    category: "PLACE_VALUE",
+    pvMode: "mixed",
+    op: "+",
+    val: 10,
+    label: "1, 2 & 3 Digits",
+    title: "Digit Positions Mix",
+    voiceRule:
+      "Check each digit's position! Ones on the right, Tens in the middle, Hundreds on the left.",
+    color: "from-fuchsia-500 to-indigo-600",
+    bgLight: "bg-fuchsia-50",
+    border: "border-fuchsia-400",
+    text: "text-fuchsia-900",
+  },
 };
 
 const SKIP_COUNT_RULES = [
@@ -358,6 +550,16 @@ const SKIP_COUNT_RULES = [
   "SLIDE10_FWD",
   "SLIDE10_BACK",
 ];
+
+const COIN_RULES = [
+  "COINS_PENNY",
+  "COINS_NICKEL",
+  "COINS_DIME",
+  "COINS_QUARTER",
+  "COINS_MIXED",
+];
+
+const PLACE_VALUE_RULES = ["PV_1DIGIT", "PV_2DIGIT", "PV_3DIGIT", "PV_MIXED"];
 
 const AVATARS = [
   {
@@ -437,7 +639,7 @@ class SoundEngine {
   constructor() {
     this.ctx = null;
     this.muted = false;
-    this.currentAudio = null; // Tracks active audio to prevent overlapping speech
+    this.currentAudio = null;
   }
 
   init() {
@@ -539,7 +741,6 @@ class SoundEngine {
   async speak(text) {
     if (this.muted || typeof window === "undefined") return;
 
-    // Stop and clear the previous audio if a new speak request comes in rapidly
     if (this.currentAudio) {
       await waitForAudio(this.currentAudio);
       this.currentAudio.pause();
@@ -557,7 +758,7 @@ class SoundEngine {
           body: JSON.stringify({
             model: "kokoro",
             input: text,
-            voice: "af_bella(2)+af_sarah(1)+am_michael(1)", // Adjust based on your preferred TTS voice
+            voice: "af_bella(2)+af_sarah(1)+am_michael(1)",
             response_format: "mp3",
             speed: 1.0,
           }),
@@ -575,14 +776,12 @@ class SoundEngine {
         throw new Error(`Kokoro TTS server error: ${response.status}`);
       }
 
-      // Convert the response stream to a blob and play it via HTML5 Audio
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
 
       this.currentAudio = audio;
 
-      // Prevent memory leaks by revoking the object URL once playback finishes
       audio.onended = () => {
         URL.revokeObjectURL(audioUrl);
         if (this.currentAudio === audio) {
@@ -598,7 +797,6 @@ class SoundEngine {
 }
 const sound = new SoundEngine();
 
-// 1. Function that returns a Promise when the audio finishes
 function waitForAudio(audioElement) {
   return new Promise((resolve) => {
     audioElement.addEventListener("ended", resolve, { once: true });
@@ -606,19 +804,402 @@ function waitForAudio(audioElement) {
 }
 
 // ==========================================
-// 4. QUESTION GENERATOR HELPER
+// 4. QUESTION GENERATORS (NUMBER LINE, COINS, PLACE VALUE)
 // ==========================================
+function generateCoinQuestion(rule, usedKeys = []) {
+  let coins = [];
+  let answer = 0;
+  let generatedKey = "";
+  let attempts = 0;
+
+  do {
+    coins = [];
+    if (rule.coinMode === "penny") {
+      const count = Math.floor(Math.random() * 10) + 1;
+      for (let i = 0; i < count; i++) coins.push("penny");
+    } else if (rule.coinMode === "nickel") {
+      const count = Math.floor(Math.random() * 8) + 1;
+      for (let i = 0; i < count; i++) coins.push("nickel");
+    } else if (rule.coinMode === "dime") {
+      const count = Math.floor(Math.random() * 10) + 1;
+      for (let i = 0; i < count; i++) coins.push("dime");
+    } else if (rule.coinMode === "quarter") {
+      const count = Math.floor(Math.random() * 6) + 1;
+      for (let i = 0; i < count; i++) coins.push("quarter");
+    } else {
+      const q = Math.floor(Math.random() * 3);
+      const d = Math.floor(Math.random() * 3);
+      const n = Math.floor(Math.random() * 3);
+      const p = Math.floor(Math.random() * 4);
+      for (let i = 0; i < q; i++) coins.push("quarter");
+      for (let i = 0; i < d; i++) coins.push("dime");
+      for (let i = 0; i < n; i++) coins.push("nickel");
+      for (let i = 0; i < p; i++) coins.push("penny");
+
+      const distinctTypes = new Set(coins).size;
+      if (coins.length < 2 || coins.length > 7 || distinctTypes < 2) {
+        coins = ["dime", "nickel", "penny"];
+      }
+    }
+
+    answer = coins.reduce((sum, type) => sum + COIN_SPECS[type].value, 0);
+    generatedKey = `${rule.id}_${coins.join("-")}`;
+    attempts++;
+  } while (usedKeys.includes(generatedKey) && attempts < 50);
+
+  let running = 0;
+  const coinItems = coins.map((type, idx) => {
+    const spec = COIN_SPECS[type];
+    running += spec.value;
+    return {
+      idx,
+      type,
+      name: spec.name,
+      value: spec.value,
+      runningTotal: running,
+    };
+  });
+
+  const steps = coinItems.map((c, idx) => ({
+    coinIndex: idx,
+    runningTotal: c.runningTotal,
+    label: idx === 0 ? `${c.runningTotal}¢` : `+${c.value}¢ → ${c.runningTotal}¢`,
+    voice:
+      idx === 0
+        ? `${c.runningTotal} cents`
+        : `plus ${c.value} is ${c.runningTotal} cents`,
+  }));
+
+  const optionsSet = new Set([answer]);
+  const coinCount = coins.length;
+  const stepUnit =
+    rule.coinMode === "penny"
+      ? 1
+      : rule.coinMode === "nickel"
+        ? 5
+        : rule.coinMode === "dime"
+          ? 10
+          : rule.coinMode === "quarter"
+            ? 25
+            : 5;
+
+  if (coinCount !== answer && coinCount > 0 && Math.random() < 0.5) {
+    optionsSet.add(coinCount);
+  }
+
+  let optAttempts = 0;
+  while (optionsSet.size < 4 && optAttempts < 100) {
+    optAttempts++;
+    const offsets =
+      rule.coinMode === "mixed"
+        ? [-10, -5, -1, 1, 5, 10, 15, 25]
+        : [-2 * stepUnit, -stepUnit, stepUnit, 2 * stepUnit, 3 * stepUnit];
+    const delta = offsets[Math.floor(Math.random() * offsets.length)];
+    const candidate = answer + delta;
+    if (candidate > 0 && candidate !== answer) {
+      optionsSet.add(candidate);
+    }
+  }
+
+  const summaryCounts = ["quarter", "dime", "nickel", "penny"]
+    .map((t) => {
+      const cnt = coins.filter((c) => c === t).length;
+      return cnt > 0 ? `${cnt}${COIN_SPECS[t].short}` : null;
+    })
+    .filter(Boolean)
+    .join(" + ");
+
+  return {
+    key: generatedKey,
+    rule,
+    answer,
+    answerUnit: "¢",
+    options: Array.from(optionsSet).sort((a, b) => a - b),
+    steps,
+    coins: coinItems,
+    promptText: "How much money is shown?",
+    voicePrompt: "Count the coins! How many cents do you see?",
+    equationLog: `${summaryCounts} = ${answer}¢`,
+  };
+}
+
+function generatePlaceValueQuestion(rule, usedKeys = []) {
+  let num = 5;
+  let digitCount = 1;
+  let qMode = "build_number";
+  let targetPlace = "ones";
+  let generatedKey = "";
+  let attempts = 0;
+
+  do {
+    if (rule.pvMode === "1digit") {
+      digitCount = 1;
+    } else if (rule.pvMode === "2digit") {
+      digitCount = 2;
+    } else if (rule.pvMode === "3digit") {
+      digitCount = 3;
+    } else {
+      digitCount = [1, 2, 3][Math.floor(Math.random() * 3)];
+    }
+
+    if (digitCount === 1) {
+      num = Math.floor(Math.random() * 9) + 1;
+      const modes =
+        rule.pvMode === "mixed"
+          ? ["build_number", "identify_digit", "digit_count"]
+          : ["build_number", "identify_digit"];
+      qMode = modes[Math.floor(Math.random() * modes.length)];
+      targetPlace = "ones";
+    } else if (digitCount === 2) {
+      const t = Math.floor(Math.random() * 9) + 1;
+      let o = Math.floor(Math.random() * 10);
+      const modes =
+        rule.pvMode === "mixed"
+          ? ["build_number", "identify_digit", "digit_value", "digit_count"]
+          : ["build_number", "identify_digit", "digit_value"];
+      qMode = modes[Math.floor(Math.random() * modes.length)];
+      if (qMode !== "build_number" && t === o) {
+        o = (o + 3) % 10;
+      }
+      num = t * 10 + o;
+      targetPlace = Math.random() < 0.55 ? "tens" : "ones";
+    } else {
+      const h = Math.floor(Math.random() * 9) + 1;
+      let t = Math.floor(Math.random() * 10);
+      let o = Math.floor(Math.random() * 10);
+      const modes =
+        rule.pvMode === "mixed"
+          ? ["build_number", "identify_digit", "digit_value", "digit_count"]
+          : ["build_number", "identify_digit", "digit_value"];
+      qMode = modes[Math.floor(Math.random() * modes.length)];
+      if (qMode === "digit_value" || qMode === "identify_digit") {
+        while (t === h) t = Math.floor(Math.random() * 10);
+        while (o === h || o === t) o = Math.floor(Math.random() * 10);
+      }
+      num = h * 100 + t * 10 + o;
+      targetPlace = ["hundreds", "tens", "ones"][Math.floor(Math.random() * 3)];
+    }
+
+    generatedKey = `${rule.id}_${num}_${qMode}_${targetPlace}`;
+    attempts++;
+  } while (usedKeys.includes(generatedKey) && attempts < 50);
+
+  const hundreds = Math.floor(num / 100);
+  const tens = Math.floor((num % 100) / 10);
+  const ones = num % 10;
+  const placeMap = { hundreds, tens, ones };
+  const placeMultiplier = { hundreds: 100, tens: 10, ones: 1 };
+  const placeLabel = {
+    hundreds: "Hundreds",
+    tens: "Tens",
+    ones: "Ones",
+  };
+
+  let answer = num;
+  let promptText = "";
+  let voicePrompt = "";
+  let equationLog = "";
+  let steps = [];
+  const optionsSet = new Set();
+
+  if (qMode === "build_number") {
+    answer = num;
+    if (digitCount === 1) {
+      promptText = `What number is ${ones} ${ones === 1 ? "One" : "Ones"}?`;
+      voicePrompt = `Count the ones blocks! What one-digit number is ${ones} ones?`;
+      equationLog = `${ones} Ones = ${num}`;
+      steps = [
+        {
+          highlightPlace: "ones",
+          label: `${ones} Ones = ${num}`,
+          voice: `${ones} in the ones place makes ${num}!`,
+        },
+      ];
+    } else if (digitCount === 2) {
+      promptText = `What number is ${tens} Tens and ${ones} Ones?`;
+      voicePrompt = `What two-digit number has ${tens} tens and ${ones} ones?`;
+      equationLog = `${tens}T + ${ones}O = ${num}`;
+      steps = [
+        {
+          highlightPlace: "tens",
+          label: `${tens} Tens = ${tens * 10}`,
+          voice: `${tens} tens is ${tens * 10}`,
+        },
+        {
+          highlightPlace: "ones",
+          label: `+ ${ones} Ones = ${num}`,
+          voice: `and ${ones} ones makes ${num}!`,
+        },
+      ];
+    } else {
+      promptText = `What number is ${hundreds} Hundreds, ${tens} Tens, and ${ones} Ones?`;
+      voicePrompt = `What three-digit number has ${hundreds} hundreds, ${tens} tens, and ${ones} ones?`;
+      equationLog = `${hundreds}H + ${tens}T + ${ones}O = ${num}`;
+      steps = [
+        {
+          highlightPlace: "hundreds",
+          label: `${hundreds} Hundreds = ${hundreds * 100}`,
+          voice: `${hundreds} hundreds is ${hundreds * 100}`,
+        },
+        {
+          highlightPlace: "tens",
+          label: `+ ${tens} Tens = ${hundreds * 100 + tens * 10}`,
+          voice: `plus ${tens} tens is ${hundreds * 100 + tens * 10}`,
+        },
+        {
+          highlightPlace: "ones",
+          label: `+ ${ones} Ones = ${num}`,
+          voice: `and ${ones} ones makes ${num}!`,
+        },
+      ];
+    }
+
+    optionsSet.add(answer);
+    if (digitCount === 2 && ones > 0 && ones !== tens) {
+      optionsSet.add(ones * 10 + tens);
+    }
+    if (digitCount === 3) {
+      const swaps = [
+        hundreds * 100 + ones * 10 + tens,
+        tens * 100 + hundreds * 10 + ones,
+        ones * 100 + tens * 10 + hundreds,
+      ];
+      swaps.forEach((s) => {
+        if (s >= 100 && s !== answer && optionsSet.size < 4) optionsSet.add(s);
+      });
+    }
+    while (optionsSet.size < 4) {
+      const delta =
+        digitCount === 1
+          ? Math.floor(Math.random() * 9) + 1
+          : digitCount === 2
+            ? Math.max(
+                10,
+                Math.min(99, answer + (Math.floor(Math.random() * 21) - 10)),
+              )
+            : Math.max(
+                100,
+                Math.min(
+                  999,
+                  answer +
+                    [-100, -10, -1, 1, 10, 100][Math.floor(Math.random() * 6)],
+                ),
+              );
+      if (delta !== answer) optionsSet.add(delta);
+    }
+  } else if (qMode === "identify_digit") {
+    answer = placeMap[targetPlace];
+    promptText = `Which digit is in the ${placeLabel[targetPlace]} place of ${num}?`;
+    voicePrompt = `Look at ${num}. Which digit is in the ${placeLabel[targetPlace]} place?`;
+    equationLog = `${placeLabel[targetPlace]} digit of ${num} = ${answer}`;
+    steps = [
+      {
+        highlightPlace: targetPlace,
+        label: `${placeLabel[targetPlace]} place → ${answer}`,
+        voice: `In ${num}, the digit ${answer} is in the ${placeLabel[targetPlace]} place!`,
+      },
+    ];
+
+    optionsSet.add(answer);
+    if (digitCount >= 2) optionsSet.add(tens);
+    if (digitCount >= 1) optionsSet.add(ones);
+    if (digitCount === 3) optionsSet.add(hundreds);
+    while (optionsSet.size < 4) {
+      optionsSet.add(Math.floor(Math.random() * 10));
+    }
+  } else if (qMode === "digit_value") {
+    const targetDigit = placeMap[targetPlace];
+    answer = targetDigit * placeMultiplier[targetPlace];
+    promptText = `What is the value of the ${targetDigit} in ${num}?`;
+    voicePrompt = `In ${num}, what is the value of the digit ${targetDigit}?`;
+    equationLog = `Value of ${targetDigit} in ${num} = ${answer}`;
+    steps = [
+      {
+        highlightPlace: targetPlace,
+        label: `${targetDigit} in ${placeLabel[targetPlace]} = ${answer}`,
+        voice: `The ${targetDigit} is in the ${placeLabel[targetPlace]} place, so its value is ${answer}!`,
+      },
+    ];
+
+    optionsSet.add(answer);
+    [targetDigit, targetDigit * 10, targetDigit * 100].forEach((v) => {
+      if (v !== answer && optionsSet.size < 4 && (digitCount === 3 || v < 100)) {
+        optionsSet.add(v);
+      }
+    });
+    while (optionsSet.size < 4) {
+      const otherDigit = Math.floor(Math.random() * 9) + 1;
+      const mult =
+        digitCount === 3
+          ? [1, 10, 100][Math.floor(Math.random() * 3)]
+          : [1, 10][Math.floor(Math.random() * 2)];
+      const cand = otherDigit * mult;
+      if (cand !== answer) optionsSet.add(cand);
+    }
+  } else {
+    answer = digitCount;
+    promptText = `How many digits are in ${num}?`;
+    voicePrompt = `Count the digit positions in ${num}. How many digits does ${num} have?`;
+    equationLog = `Digits in ${num} = ${digitCount}`;
+    const placeNames =
+      digitCount === 1
+        ? "Ones"
+        : digitCount === 2
+          ? "Tens and Ones"
+          : "Hundreds, Tens, and Ones";
+    steps = [
+      {
+        highlightPlace: "all",
+        label: `${digitCount} digit${digitCount > 1 ? "s" : ""} (${placeNames})`,
+        voice: `${num} has ${digitCount} ${digitCount === 1 ? "digit" : "digits"}: ${placeNames}!`,
+      },
+    ];
+    [1, 2, 3, 4].forEach((v) => optionsSet.add(v));
+  }
+
+  return {
+    key: generatedKey,
+    rule,
+    answer,
+    answerUnit: "",
+    options: Array.from(optionsSet).sort((a, b) => a - b),
+    steps,
+    promptText,
+    voicePrompt,
+    equationLog,
+    placeValue: {
+      number: num,
+      digitCount,
+      hundreds,
+      tens,
+      ones,
+      qMode,
+      targetPlace,
+      showAllColumns: rule.pvMode === "mixed" || digitCount === 3,
+    },
+  };
+}
+
 function generateMathQuestion(
   ruleKey = "ALL",
   usedKeys = [],
   customStart = null,
 ) {
-  const ruleKeys = Object.keys(MATH_RULES);
+  const arithmeticKeys = Object.keys(MATH_RULES).filter(
+    (k) => !MATH_RULES[k].category,
+  );
   let chosenRuleKey =
     ruleKey === "ALL"
-      ? ruleKeys[Math.floor(Math.random() * ruleKeys.length)]
+      ? arithmeticKeys[Math.floor(Math.random() * arithmeticKeys.length)]
       : ruleKey;
   const rule = MATH_RULES[chosenRuleKey];
+
+  if (rule.category === "COINS") {
+    return generateCoinQuestion(rule, usedKeys);
+  }
+  if (rule.category === "PLACE_VALUE") {
+    return generatePlaceValueQuestion(rule, usedKeys);
+  }
 
   let startNum = 5;
   let answer = 6;
@@ -636,14 +1217,13 @@ function generateMathQuestion(
       }
     } else if (rule.max === 200) {
       if (rule.sliding) {
-        // Pick an off-decade ones digit (1..9) for sliding 10 counts
         const ones = Math.floor(Math.random() * 9) + 1;
         if (rule.op === "+") {
-          const tens = Math.floor(Math.random() * 19); // 0..18 -> 1..189
+          const tens = Math.floor(Math.random() * 19);
           startNum = tens * 10 + ones;
           answer = startNum + rule.val;
         } else {
-          const tens = Math.floor(Math.random() * 19) + 1; // 1..19 -> 11..199
+          const tens = Math.floor(Math.random() * 19) + 1;
           startNum = tens * 10 + ones;
           answer = startNum - rule.val;
         }
@@ -654,7 +1234,7 @@ function generateMathQuestion(
         answer = startNum + rule.val;
       } else {
         const maxMultiplier = rule.max / rule.val;
-        const multiplier = Math.floor(Math.random() * maxMultiplier) + 1; // 1..20 -> 10..200
+        const multiplier = Math.floor(Math.random() * maxMultiplier) + 1;
         startNum = multiplier * rule.val;
         answer = startNum - rule.val;
       }
@@ -1013,7 +1593,6 @@ function generateMathQuestion(
   while (optionsSet.size < 4 && optionAttempts < 100) {
     optionAttempts++;
     if (rule.max === 200) {
-      // Keep distractors close to the answer (and same ones digit for sliding counts)
       const offsetSteps = [-3, -2, -1, 1, 2, 3, 4];
       const stepChoice =
         offsetSteps[Math.floor(Math.random() * offsetSteps.length)];
@@ -1036,13 +1615,16 @@ function generateMathQuestion(
     startNum,
     rule,
     answer,
+    answerUnit: "",
     options: sortedOptions,
     steps,
+    voicePrompt: `What is ${startNum} ${rule.op === "+" ? "plus" : "minus"} ${rule.val}?`,
+    equationLog: `${startNum} ${rule.op}${rule.val} = ${answer}`,
   };
 }
 
 // ==========================================
-// NEW PROPORTIONAL REWARD ALGORITHM
+// PROPORTIONAL REWARD ALGORITHM
 // ==========================================
 const calculateQuizReward = (quizCategory, correctAnswers) => {
   let multiplier = 1;
@@ -1069,7 +1651,113 @@ const calculateQuizReward = (quizCategory, correctAnswers) => {
 };
 
 // ==========================================
-// 5. INTERACTIVE NUMBER LINE (MINIMIZED HEIGHT)
+// SHARED BASE-10 BLOCK RENDERER
+// ==========================================
+function renderBase10Blocks(colId, count) {
+  if (count === 0) {
+    return (
+      <span className="text-xs font-bold text-slate-400 italic py-4">
+        0 {colId}
+      </span>
+    );
+  }
+  if (colId === "hundreds") {
+    return (
+      <div className="flex flex-wrap justify-center gap-1.5 max-w-[160px]">
+        {Array.from({ length: count }).map((_, i) => (
+          <svg
+            key={i}
+            width="34"
+            height="34"
+            viewBox="0 0 34 34"
+            className="drop-shadow-sm"
+          >
+            <rect
+              x="1"
+              y="1"
+              width="32"
+              height="32"
+              rx="3"
+              fill="#a855f7"
+              stroke="#6b21a8"
+              strokeWidth="2"
+            />
+            {[9, 17, 25].map((pos) => (
+              <g key={pos}>
+                <line
+                  x1={pos}
+                  y1="2"
+                  x2={pos}
+                  y2="32"
+                  stroke="#e9d5ff"
+                  strokeWidth="1"
+                />
+                <line
+                  x1="2"
+                  y1={pos}
+                  x2="32"
+                  y2={pos}
+                  stroke="#e9d5ff"
+                  strokeWidth="1"
+                />
+              </g>
+            ))}
+          </svg>
+        ))}
+      </div>
+    );
+  }
+  if (colId === "tens") {
+    return (
+      <div className="flex flex-wrap justify-center gap-1.5">
+        {Array.from({ length: count }).map((_, i) => (
+          <svg
+            key={i}
+            width="12"
+            height="46"
+            viewBox="0 0 12 46"
+            className="drop-shadow-sm"
+          >
+            <rect
+              x="1"
+              y="1"
+              width="10"
+              height="44"
+              rx="2"
+              fill="#0ea5e9"
+              stroke="#0369a1"
+              strokeWidth="1.5"
+            />
+            {[10, 19, 28, 37].map((y) => (
+              <line
+                key={y}
+                x1="2"
+                y1={y}
+                x2="10"
+                y2={y}
+                stroke="#bae6fd"
+                strokeWidth="1"
+              />
+            ))}
+          </svg>
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-wrap justify-center gap-1.5 max-w-[120px]">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="w-4 h-4 rounded-sm bg-emerald-500 border-2 border-emerald-700 shadow-sm"
+        />
+      ))}
+    </div>
+  );
+}
+
+// ==========================================
+// 5A. INTERACTIVE NUMBER LINE
 // ==========================================
 function InteractiveNumberLine({
   question,
@@ -1083,7 +1771,6 @@ function InteractiveNumberLine({
   const scrollContainerRef = useRef(null);
   const { startNum, rule, steps, answer } = question;
 
-  // Stretch the axis if the user's custom number exceeds the default max
   let maxAxis = rule.max || 30;
   const highestNum = Math.max(startNum, answer);
   if (rule.max && highestNum > maxAxis) {
@@ -1114,7 +1801,6 @@ function InteractiveNumberLine({
   }, [currentMascotNum]);
 
   const axisStep = rule.max ? rule.val : 1;
-  // Align lily pads to the ones-digit offset for sliding counts / custom starts
   const axisOffset = rule.max ? startNum % axisStep : 0;
   const numbers = [];
   for (let n = axisOffset; n <= maxAxis; n += axisStep) {
@@ -1359,6 +2045,989 @@ function InteractiveNumberLine({
 }
 
 // ==========================================
+// 5B. INTERACTIVE COIN BOARD
+// ==========================================
+function InteractiveCoinBoard({
+  question,
+  animStepIndex,
+  showHintPreview = false,
+}) {
+  const { coins = [], steps = [], rule } = question;
+
+  return (
+    <div className="w-full bg-gradient-to-b from-amber-50 via-yellow-50 to-emerald-50 rounded-3xl p-4 sm:p-5 border-4 border-amber-300 shadow-inner select-none">
+      <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
+        <div className="text-amber-900 font-black text-base sm:text-lg">
+          🪙 {question.promptText}
+        </div>
+        {animStepIndex >= 0 &&
+        steps[Math.min(animStepIndex, steps.length - 1)] ? (
+          <div className="bg-white border-2 border-indigo-400 text-indigo-900 px-4 py-1 rounded-full font-black text-sm sm:text-base shadow-sm animate-bounce">
+            ✨ {steps[Math.min(animStepIndex, steps.length - 1)].label}
+          </div>
+        ) : showHintPreview ? (
+          <div className="bg-amber-100 border-2 border-amber-400 text-amber-900 px-3 py-1 rounded-full font-bold text-xs sm:text-sm">
+            💡 Quarter=25¢ · Dime=10¢ · Nickel=5¢ · Penny=1¢
+          </div>
+        ) : (
+          <div className="text-amber-800/80 font-bold text-xs sm:text-sm">
+            {rule.title}
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-wrap justify-center items-end gap-4 sm:gap-5 py-3 min-h-[120px]">
+        {coins.map((c, idx) => {
+          const spec = COIN_SPECS[c.type];
+          const isCounted = animStepIndex >= idx;
+          const isCurrent = animStepIndex === idx;
+
+          return (
+            <div key={idx} className="flex flex-col items-center gap-1.5">
+              <div
+                className={`min-h-[26px] px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-black transition-all ${
+                  isCounted
+                    ? "bg-emerald-500 text-white shadow scale-105"
+                    : showHintPreview
+                      ? "bg-amber-200 text-amber-900"
+                      : "opacity-0"
+                }`}
+              >
+                {isCounted ? `${c.runningTotal}¢` : `+${c.value}¢`}
+              </div>
+
+              <div
+                className={`${spec.sizeClass} rounded-full bg-gradient-to-br ${spec.gradient} border-4 shadow-md flex flex-col items-center justify-center transition-transform duration-300 ${
+                  isCurrent
+                    ? "scale-115 ring-4 ring-emerald-400 -translate-y-1.5"
+                    : isCounted
+                      ? "ring-2 ring-emerald-400"
+                      : ""
+                }`}
+              >
+                <span className={`font-black leading-none ${spec.textClass}`}>
+                  {c.value}¢
+                </span>
+                <span
+                  className={`font-extrabold uppercase tracking-wider opacity-80 mt-0.5 ${spec.subClass}`}
+                >
+                  {spec.name}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// 5C. INTERACTIVE PLACE VALUE BOARD (1, 2 & 3-DIGIT)
+// ==========================================
+function InteractivePlaceValueBoard({
+  question,
+  animStepIndex,
+  showHintPreview = false,
+  isAnsweredCorrectly = false,
+}) {
+  const { placeValue, steps = [] } = question;
+  if (!placeValue) return null;
+
+  const {
+    number,
+    digitCount,
+    hundreds,
+    tens,
+    ones,
+    qMode,
+    targetPlace,
+    showAllColumns,
+  } = placeValue;
+
+  const activeHighlight =
+    animStepIndex >= 0 && steps[Math.min(animStepIndex, steps.length - 1)]
+      ? steps[Math.min(animStepIndex, steps.length - 1)].highlightPlace
+      : showHintPreview && qMode !== "build_number"
+        ? targetPlace
+        : null;
+
+  const showNumberDigits =
+    qMode !== "build_number" || isAnsweredCorrectly || animStepIndex >= 0;
+
+  const columns = [];
+  if (showAllColumns || digitCount === 3) {
+    columns.push({
+      id: "hundreds",
+      title: "Hundreds",
+      value: hundreds,
+      active: digitCount >= 3,
+      bg: "bg-purple-50",
+      border: "border-purple-300",
+      ring: "ring-purple-500 bg-purple-100",
+      badge: "bg-purple-600 text-white",
+      text: "text-purple-900",
+    });
+  }
+  if (showAllColumns || digitCount >= 2) {
+    columns.push({
+      id: "tens",
+      title: "Tens",
+      value: tens,
+      active: digitCount >= 2,
+      bg: "bg-sky-50",
+      border: "border-sky-300",
+      ring: "ring-sky-500 bg-sky-100",
+      badge: "bg-sky-600 text-white",
+      text: "text-sky-900",
+    });
+  }
+  columns.push({
+    id: "ones",
+    title: "Ones",
+    value: ones,
+    active: true,
+    bg: "bg-emerald-50",
+    border: "border-emerald-300",
+    ring: "ring-emerald-500 bg-emerald-100",
+    badge: "bg-emerald-600 text-white",
+    text: "text-emerald-900",
+  });
+
+  return (
+    <div className="w-full bg-gradient-to-b from-indigo-50 via-white to-purple-50 rounded-3xl p-4 sm:p-5 border-4 border-indigo-300 shadow-inner select-none space-y-4">
+      <div className="flex flex-wrap justify-between items-center gap-2">
+        <div className="text-indigo-950 font-black text-base sm:text-xl">
+          🔢 {question.promptText}
+        </div>
+        {animStepIndex >= 0 &&
+        steps[Math.min(animStepIndex, steps.length - 1)] ? (
+          <div className="bg-white border-2 border-indigo-400 text-indigo-900 px-4 py-1 rounded-full font-black text-sm shadow-sm animate-bounce">
+            ✨ {steps[Math.min(animStepIndex, steps.length - 1)].label}
+          </div>
+        ) : showHintPreview ? (
+          <div className="bg-amber-100 border-2 border-amber-400 text-amber-900 px-3 py-1 rounded-full font-bold text-xs sm:text-sm">
+            💡 Look at each digit's column!
+          </div>
+        ) : null}
+      </div>
+
+      {qMode !== "build_number" && (
+        <div className="flex justify-center items-center gap-2 py-1">
+          {String(number)
+            .split("")
+            .map((ch, idx, arr) => {
+              const posFromRight = arr.length - 1 - idx;
+              const placeName =
+                posFromRight === 2
+                  ? "hundreds"
+                  : posFromRight === 1
+                    ? "tens"
+                    : "ones";
+              const isHighlighted =
+                (qMode === "digit_value" && placeName === targetPlace) ||
+                activeHighlight === placeName ||
+                activeHighlight === "all";
+
+              const colorByPlace =
+                placeName === "hundreds"
+                  ? "text-purple-700 border-purple-400 bg-purple-100"
+                  : placeName === "tens"
+                    ? "text-sky-700 border-sky-400 bg-sky-100"
+                    : "text-emerald-700 border-emerald-400 bg-emerald-100";
+
+              return (
+                <div
+                  key={idx}
+                  className={`w-14 h-16 sm:w-16 sm:h-20 rounded-2xl border-4 flex items-center justify-center text-4xl sm:text-5xl font-black transition-all ${
+                    isHighlighted
+                      ? `${colorByPlace} scale-110 shadow-md ring-4 ring-amber-400`
+                      : "bg-white border-slate-300 text-indigo-950"
+                  }`}
+                >
+                  {ch}
+                </div>
+              );
+            })}
+        </div>
+      )}
+
+      <div
+        className={`grid gap-3 ${
+          columns.length === 1
+            ? "grid-cols-1 max-w-xs mx-auto"
+            : columns.length === 2
+              ? "grid-cols-2 max-w-lg mx-auto"
+              : "grid-cols-3"
+        }`}
+      >
+        {columns.map((col) => {
+          const isLit =
+            activeHighlight === col.id || activeHighlight === "all";
+          const showDigitInCol =
+            col.active &&
+            (showNumberDigits ||
+              (qMode === "build_number" &&
+                steps
+                  .slice(0, animStepIndex + 1)
+                  .some((s) => s.highlightPlace === col.id)));
+
+          return (
+            <div
+              key={col.id}
+              className={`rounded-2xl border-2 p-3 flex flex-col items-center justify-between min-h-[140px] transition-all ${
+                !col.active
+                  ? "bg-slate-100/70 border-slate-200 opacity-45"
+                  : isLit
+                    ? `${col.border} ${col.ring} ring-4 scale-[1.02] shadow-md`
+                    : `${col.bg} ${col.border}`
+              }`}
+            >
+              <span
+                className={`px-3 py-0.5 rounded-full text-xs sm:text-sm font-black uppercase tracking-wider ${
+                  col.active ? col.badge : "bg-slate-300 text-slate-600"
+                }`}
+              >
+                {col.title}
+              </span>
+
+              <div className="my-2 flex items-center justify-center flex-1">
+                {col.active ? (
+                  renderBase10Blocks(col.id, col.value)
+                ) : (
+                  <span className="text-xs font-bold text-slate-400">—</span>
+                )}
+              </div>
+
+              <div
+                className={`w-11 h-11 rounded-xl bg-white border-2 ${col.border} flex items-center justify-center text-2xl font-black ${col.text}`}
+              >
+                {!col.active ? "—" : showDigitInCol ? col.value : "?"}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// 5D. INTERACTIVE LESSON VIEW (COINS & PLACE VALUE)
+// ==========================================
+function InteractiveLessonView({
+  rule,
+  onStartPractice,
+  onStartQuiz,
+  onBackHome,
+}) {
+  const [step, setStep] = useState(0);
+  const totalSteps = 3;
+
+  // Coin Sandbox State (Step 1)
+  const sandboxCoins = useMemo(() => {
+    if (rule.category !== "COINS") return [];
+    if (rule.coinMode === "penny")
+      return ["penny", "penny", "penny", "penny", "penny"];
+    if (rule.coinMode === "nickel")
+      return ["nickel", "nickel", "nickel", "nickel"];
+    if (rule.coinMode === "dime")
+      return ["dime", "dime", "dime", "dime", "dime"];
+    if (rule.coinMode === "quarter")
+      return ["quarter", "quarter", "quarter", "quarter"];
+    return ["quarter", "dime", "nickel", "penny", "penny"];
+  }, [rule]);
+
+  const [tappedCoinIndices, setTappedCoinIndices] = useState([]);
+  const lessonTimersRef = useRef([]);
+
+  // Place Value Number Builder State (Step 1)
+  const [builderH, setBuilderH] = useState(0);
+  const [builderT, setBuilderT] = useState(0);
+  const [builderO, setBuilderO] = useState(5);
+
+  const clearLessonTimers = () => {
+    lessonTimersRef.current.forEach((t) => clearTimeout(t));
+    lessonTimersRef.current = [];
+  };
+
+  useEffect(() => {
+    clearLessonTimers();
+    setStep(0);
+    setTappedCoinIndices([]);
+    if (rule.pvMode === "1digit") {
+      setBuilderH(0);
+      setBuilderT(0);
+      setBuilderO(6);
+    } else if (rule.pvMode === "2digit") {
+      setBuilderH(0);
+      setBuilderT(3);
+      setBuilderO(4);
+    } else if (rule.pvMode === "3digit") {
+      setBuilderH(2);
+      setBuilderT(4);
+      setBuilderO(5);
+    } else {
+      setBuilderH(1);
+      setBuilderT(2);
+      setBuilderO(5);
+    }
+    return () => clearLessonTimers();
+  }, [rule]);
+
+  const handleTapSandboxCoin = (idx) => {
+    if (tappedCoinIndices.includes(idx)) return;
+    const nextTapped = [...tappedCoinIndices, idx];
+    setTappedCoinIndices(nextTapped);
+    const newTotal = nextTapped.reduce(
+      (sum, coinIdx) => sum + COIN_SPECS[sandboxCoins[coinIdx]].value,
+      0,
+    );
+    sound.playHop(COIN_SPECS[sandboxCoins[idx]].value >= 10);
+    sound.speak(`${newTotal} cents`);
+  };
+
+  const handleAutoCountCoins = () => {
+    clearLessonTimers();
+    setTappedCoinIndices([]);
+    let running = 0;
+    sandboxCoins.forEach((type, idx) => {
+      const t = setTimeout(() => {
+        running += COIN_SPECS[type].value;
+        setTappedCoinIndices((prev) => [...prev, idx]);
+        sound.playHop(COIN_SPECS[type].value >= 10);
+        sound.speak(`${running} cents`);
+      }, idx * 1100 + 150);
+      lessonTimersRef.current.push(t);
+    });
+  };
+
+  const builderNumber = builderH * 100 + builderT * 10 + builderO;
+
+  const speakBuilderNumber = (h, t, o) => {
+    const val = h * 100 + t * 10 + o;
+    const parts = [];
+    if (h > 0 || rule.pvMode === "3digit")
+      parts.push(`${h} ${h === 1 ? "hundred" : "hundreds"}`);
+    if (t > 0 || h > 0 || rule.pvMode === "2digit" || rule.pvMode === "3digit")
+      parts.push(`${t} ${t === 1 ? "ten" : "tens"}`);
+    parts.push(`${o} ${o === 1 ? "one" : "ones"}`);
+    sound.speak(`${val}! That is ${parts.join(", ")}!`);
+  };
+
+  const renderCoinLessonBody = () => {
+    if (step === 0) {
+      const coinsToIntroduce =
+        rule.coinMode === "mixed"
+          ? ["quarter", "dime", "nickel", "penny"]
+          : [rule.coinMode];
+
+      return (
+        <div className="space-y-5">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h3 className="text-2xl font-black text-indigo-950">
+              Step 1: Meet the {rule.coinMode === "mixed" ? "Coins" : COIN_SPECS[rule.coinMode].name}
+            </h3>
+            <button
+              onClick={() => sound.speak(rule.voiceRule)}
+              className="flex items-center gap-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border-2 border-amber-400 px-3 py-1.5 rounded-xl font-black text-sm"
+            >
+              <Volume2 className="w-4 h-4" /> Read Rule
+            </button>
+          </div>
+
+          <p className="text-lg font-bold text-slate-700 bg-amber-50 border-2 border-amber-200 p-4 rounded-2xl">
+            {rule.voiceRule}
+          </p>
+
+          <div
+            className={`grid gap-4 ${
+              coinsToIntroduce.length === 1
+                ? "grid-cols-1 max-w-sm mx-auto"
+                : "grid-cols-2 sm:grid-cols-4"
+            }`}
+          >
+            {coinsToIntroduce.map((coinType) => {
+              const spec = COIN_SPECS[coinType];
+              return (
+                <div
+                  key={coinType}
+                  onClick={() => {
+                    sound.playPop();
+                    sound.speak(`${spec.name}. ${spec.tip}`);
+                  }}
+                  className="bg-white border-4 border-amber-200 hover:border-amber-400 rounded-3xl p-5 flex flex-col items-center text-center shadow-sm cursor-pointer transition-transform active:scale-95"
+                >
+                  <div
+                    className={`${spec.sizeClass} rounded-full bg-gradient-to-br ${spec.gradient} border-4 shadow-md flex flex-col items-center justify-center mb-3`}
+                  >
+                    <span className={`font-black leading-none ${spec.textClass}`}>
+                      {spec.value}¢
+                    </span>
+                    <span
+                      className={`font-extrabold uppercase tracking-wider opacity-80 mt-0.5 ${spec.subClass}`}
+                    >
+                      {spec.name}
+                    </span>
+                  </div>
+                  <div className="font-black text-xl text-indigo-950">
+                    {spec.name} = {spec.value}¢
+                  </div>
+                  <p className="text-sm font-bold text-slate-600 mt-1">
+                    {spec.tip}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    if (step === 1) {
+      const runningTotal = tappedCoinIndices.reduce(
+        (sum, idx) => sum + COIN_SPECS[sandboxCoins[idx]].value,
+        0,
+      );
+
+      return (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-2xl font-black text-indigo-950">
+              Step 2: Tap Each Coin to Count!
+            </h3>
+            <div className="flex gap-2">
+              <button
+                onClick={handleAutoCountCoins}
+                className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl font-black text-sm"
+              >
+                <Play className="w-4 h-4" /> Count For Me
+              </button>
+              <button
+                onClick={() => {
+                  clearLessonTimers();
+                  sound.playPop();
+                  setTappedCoinIndices([]);
+                }}
+                className="flex items-center gap-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 px-3 py-1.5 rounded-xl font-bold text-sm"
+              >
+                <RefreshCw className="w-4 h-4" /> Reset
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-b from-amber-50 to-emerald-50 border-4 border-amber-300 rounded-3xl p-5 text-center space-y-5">
+            <div className="inline-block bg-white border-4 border-emerald-400 px-6 py-2 rounded-2xl shadow-sm">
+              <span className="text-sm font-bold text-slate-500 block">
+                Total So Far
+              </span>
+              <span className="text-4xl font-black text-emerald-700">
+                {runningTotal}¢
+              </span>
+            </div>
+
+            <div className="flex flex-wrap justify-center items-end gap-4 sm:gap-6 py-2">
+              {sandboxCoins.map((type, idx) => {
+                const spec = COIN_SPECS[type];
+                const tapPos = tappedCoinIndices.indexOf(idx);
+                const isTapped = tapPos !== -1;
+                const partialSum = isTapped
+                  ? tappedCoinIndices
+                      .slice(0, tapPos + 1)
+                      .reduce(
+                        (s, cIdx) => s + COIN_SPECS[sandboxCoins[cIdx]].value,
+                        0,
+                      )
+                  : null;
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleTapSandboxCoin(idx)}
+                    className="flex flex-col items-center gap-1.5 focus:outline-none group"
+                  >
+                    <div
+                      className={`min-h-[26px] px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-black transition-all ${
+                        isTapped
+                          ? "bg-emerald-500 text-white shadow"
+                          : "bg-amber-200 text-amber-900 group-hover:scale-105"
+                      }`}
+                    >
+                      {isTapped ? `${partialSum}¢` : `Tap +${spec.value}¢`}
+                    </div>
+                    <div
+                      className={`${spec.sizeClass} rounded-full bg-gradient-to-br ${spec.gradient} border-4 shadow-md flex flex-col items-center justify-center transition-transform ${
+                        isTapped
+                          ? "ring-4 ring-emerald-400 scale-105 opacity-95"
+                          : "hover:scale-110 active:scale-95"
+                      }`}
+                    >
+                      <span
+                        className={`font-black leading-none ${spec.textClass}`}
+                      >
+                        {spec.value}¢
+                      </span>
+                      <span
+                        className={`font-extrabold uppercase tracking-wider opacity-80 mt-0.5 ${spec.subClass}`}
+                      >
+                        {spec.name}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Step 2 (Final Recap)
+    return (
+      <div className="space-y-5 text-center py-2">
+        <div className="text-5xl">🪙✨</div>
+        <h3 className="text-2xl sm:text-3xl font-black text-indigo-950">
+          You're Ready for {rule.label}!
+        </h3>
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 max-w-xl mx-auto text-left space-y-2 font-bold text-amber-950">
+          <div>✅ Remember: {rule.voiceRule}</div>
+          <div>
+            ✅{" "}
+            {rule.coinMode === "mixed"
+              ? "Start with Quarters (25¢), then Dimes (10¢), Nickels (5¢), and Pennies (1¢)."
+              : `Each ${COIN_SPECS[rule.coinMode].name} adds ${COIN_SPECS[rule.coinMode].value}¢ to your total.`}
+          </div>
+        </div>
+        <div className="flex flex-wrap justify-center gap-3 pt-2">
+          <button
+            onClick={() => onStartPractice(rule.id)}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg px-8 py-3 rounded-2xl border-b-4 border-emerald-700 active:scale-95 transition-transform"
+          >
+            Start Practice →
+          </button>
+          <button
+            onClick={() => onStartQuiz(rule.id)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg px-8 py-3 rounded-2xl border-b-4 border-indigo-800 active:scale-95 transition-transform"
+          >
+            Take 10-Question Quiz 🏆
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPlaceValueLessonBody = () => {
+    const showH = rule.pvMode === "3digit" || rule.pvMode === "mixed";
+    const showT =
+      rule.pvMode === "2digit" ||
+      rule.pvMode === "3digit" ||
+      rule.pvMode === "mixed";
+
+    if (step === 0) {
+      const placeCards = [];
+      if (showH) {
+        placeCards.push({
+          id: "hundreds",
+          title: "Hundreds Place",
+          desc: "Left digit in a 3-digit number. Each flat = 100!",
+          sampleCount: 1,
+          bg: "bg-purple-50 border-purple-300 text-purple-900",
+          badge: "bg-purple-600 text-white",
+          voice:
+            "The Hundreds place is on the left of a three-digit number. One hundred flat equals one hundred ones!",
+        });
+      }
+      if (showT) {
+        placeCards.push({
+          id: "tens",
+          title: "Tens Place",
+          desc: "Each tall rod = 10 ones!",
+          sampleCount: 1,
+          bg: "bg-sky-50 border-sky-300 text-sky-900",
+          badge: "bg-sky-600 text-white",
+          voice:
+            "The Tens place is next to the Ones place. Each ten rod is a group of ten ones!",
+        });
+      }
+      placeCards.push({
+        id: "ones",
+        title: "Ones Place",
+        desc: "Always the rightmost digit. Each cube = 1!",
+        sampleCount: 1,
+        bg: "bg-emerald-50 border-emerald-300 text-emerald-900",
+        badge: "bg-emerald-600 text-white",
+        voice:
+          "The Ones place is always on the right. Each little cube equals one!",
+      });
+
+      return (
+        <div className="space-y-5">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h3 className="text-2xl font-black text-indigo-950">
+              Step 1: Meet the Digit Positions
+            </h3>
+            <button
+              onClick={() => sound.speak(rule.voiceRule)}
+              className="flex items-center gap-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-900 border-2 border-indigo-400 px-3 py-1.5 rounded-xl font-black text-sm"
+            >
+              <Volume2 className="w-4 h-4" /> Read Rule
+            </button>
+          </div>
+
+          <p className="text-lg font-bold text-slate-700 bg-indigo-50 border-2 border-indigo-200 p-4 rounded-2xl">
+            {rule.voiceRule}
+          </p>
+
+          <div
+            className={`grid gap-4 ${
+              placeCards.length === 1
+                ? "grid-cols-1 max-w-sm mx-auto"
+                : placeCards.length === 2
+                  ? "grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto"
+                  : "grid-cols-1 sm:grid-cols-3"
+            }`}
+          >
+            {placeCards.map((card) => (
+              <div
+                key={card.id}
+                onClick={() => {
+                  sound.playPop();
+                  sound.speak(card.voice);
+                }}
+                className={`${card.bg} border-4 rounded-3xl p-5 flex flex-col items-center text-center cursor-pointer shadow-sm transition-transform active:scale-95`}
+              >
+                <span
+                  className={`${card.badge} px-3 py-1 rounded-full font-black text-sm uppercase tracking-wider mb-3`}
+                >
+                  {card.title}
+                </span>
+                <div className="h-16 flex items-center justify-center mb-3">
+                  {renderBase10Blocks(card.id, card.sampleCount)}
+                </div>
+                <p className="font-bold text-sm">{card.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (step === 1) {
+      const expandedParts = [];
+      if (showH && builderH > 0) expandedParts.push(`${builderH * 100}`);
+      if (showT && (builderT > 0 || (showH && builderH > 0)))
+        expandedParts.push(`${builderT * 10}`);
+      expandedParts.push(`${builderO}`);
+
+      const minH = rule.pvMode === "3digit" ? 1 : 0;
+      const minT = rule.pvMode === "2digit" ? 1 : 0;
+      const minO = rule.pvMode === "1digit" ? 1 : 0;
+
+      const adjustDigit = (which, delta) => {
+        sound.playPop();
+        let nextH = builderH;
+        let nextT = builderT;
+        let nextO = builderO;
+        if (which === "H") {
+          nextH = Math.max(minH, Math.min(9, builderH + delta));
+          setBuilderH(nextH);
+        } else if (which === "T") {
+          nextT = Math.max(minT, Math.min(9, builderT + delta));
+          setBuilderT(nextT);
+        } else {
+          nextO = Math.max(minO, Math.min(9, builderO + delta));
+          setBuilderO(nextO);
+        }
+      };
+
+      const builderCols = [];
+      if (showH) {
+        builderCols.push({
+          key: "H",
+          id: "hundreds",
+          title: "Hundreds",
+          val: builderH,
+          min: minH,
+          bg: "bg-purple-50 border-purple-300",
+          badge: "bg-purple-600 text-white",
+          text: "text-purple-900",
+        });
+      }
+      if (showT) {
+        builderCols.push({
+          key: "T",
+          id: "tens",
+          title: "Tens",
+          val: builderT,
+          min: minT,
+          bg: "bg-sky-50 border-sky-300",
+          badge: "bg-sky-600 text-white",
+          text: "text-sky-900",
+        });
+      }
+      builderCols.push({
+        key: "O",
+        id: "ones",
+        title: "Ones",
+        val: builderO,
+        min: minO,
+        bg: "bg-emerald-50 border-emerald-300",
+        badge: "bg-emerald-600 text-white",
+        text: "text-emerald-900",
+      });
+
+      return (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-2xl font-black text-indigo-950">
+              Step 2: Build a Number!
+            </h3>
+            <button
+              onClick={() => speakBuilderNumber(builderH, builderT, builderO)}
+              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-xl font-black text-sm"
+            >
+              <Volume2 className="w-4 h-4" /> Read My Number
+            </button>
+          </div>
+
+          <div className="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-3 flex flex-wrap items-center justify-center gap-3 text-center">
+            <span className="text-4xl sm:text-5xl font-black text-indigo-950">
+              {builderNumber}
+            </span>
+            {expandedParts.length > 1 && (
+              <span className="text-lg sm:text-xl font-black text-indigo-700 bg-white px-3 py-1 rounded-xl border-2 border-indigo-200">
+                = {expandedParts.join(" + ")}
+              </span>
+            )}
+          </div>
+
+          <div
+            className={`grid gap-3 ${
+              builderCols.length === 1
+                ? "grid-cols-1 max-w-xs mx-auto"
+                : builderCols.length === 2
+                  ? "grid-cols-2 max-w-lg mx-auto"
+                  : "grid-cols-3"
+            }`}
+          >
+            {builderCols.map((col) => (
+              <div
+                key={col.id}
+                className={`${col.bg} border-2 rounded-2xl p-3 flex flex-col items-center justify-between min-h-[185px]`}
+              >
+                <span
+                  className={`${col.badge} px-3 py-0.5 rounded-full text-xs sm:text-sm font-black uppercase`}
+                >
+                  {col.title}
+                </span>
+
+                <div className="my-2 flex-1 flex items-center justify-center">
+                  {renderBase10Blocks(col.id, col.val)}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={col.val <= col.min}
+                    onClick={() => adjustDigit(col.key, -1)}
+                    className="w-9 h-9 rounded-xl bg-white border-2 border-slate-300 flex items-center justify-center font-black text-slate-700 disabled:opacity-40 active:scale-95"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className={`text-2xl font-black w-8 text-center ${col.text}`}>
+                    {col.val}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={col.val >= 9}
+                    onClick={() => adjustDigit(col.key, 1)}
+                    className="w-9 h-9 rounded-xl bg-white border-2 border-slate-300 flex items-center justify-center font-black text-slate-700 disabled:opacity-40 active:scale-95"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // Step 2: Why Position Matters + Launch
+    const comparisonExamples =
+      rule.pvMode === "1digit"
+        ? [
+            { num: "7", desc: "7 Ones = 7 (1-digit number)" },
+            { num: "9", desc: "9 Ones = 9 (biggest 1-digit number!)" },
+          ]
+        : rule.pvMode === "2digit"
+          ? [
+              { num: "25", desc: "2 Tens (20) + 5 Ones (5)" },
+              { num: "52", desc: "5 Tens (50) + 2 Ones (2)" },
+            ]
+          : rule.pvMode === "3digit"
+            ? [
+                { num: "135", desc: "1 Hundred (100) + 3 Tens (30) + 5 Ones (5)" },
+                { num: "531", desc: "5 Hundreds (500) + 3 Tens (30) + 1 One (1)" },
+              ]
+            : [
+                { num: "5", desc: "5 in the Ones place = 5" },
+                { num: "50", desc: "5 in the Tens place = 50" },
+                { num: "500", desc: "5 in the Hundreds place = 500" },
+              ];
+
+    return (
+      <div className="space-y-5 text-center py-2">
+        <h3 className="text-2xl sm:text-3xl font-black text-indigo-950">
+          Step 3: Position Changes Value!
+        </h3>
+        <div
+          className={`grid gap-3 max-w-2xl mx-auto ${
+            comparisonExamples.length === 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"
+          }`}
+        >
+          {comparisonExamples.map((ex) => (
+            <div
+              key={ex.num}
+              onClick={() => {
+                sound.playPop();
+                sound.speak(`${ex.num}. ${ex.desc}`);
+              }}
+              className="bg-indigo-50 border-2 border-indigo-300 rounded-2xl p-4 cursor-pointer hover:bg-indigo-100"
+            >
+              <div className="text-4xl font-black text-indigo-950 mb-1">
+                {ex.num}
+              </div>
+              <div className="text-sm font-bold text-indigo-800">{ex.desc}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-3 pt-2">
+          <button
+            onClick={() => onStartPractice(rule.id)}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg px-8 py-3 rounded-2xl border-b-4 border-emerald-700 active:scale-95 transition-transform"
+          >
+            Start Practice →
+          </button>
+          <button
+            onClick={() => onStartQuiz(rule.id)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg px-8 py-3 rounded-2xl border-b-4 border-indigo-800 active:scale-95 transition-transform"
+          >
+            Take 10-Question Quiz 🏆
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto px-2 py-4 space-y-4">
+      <div
+        className={`${rule.bgLight} border-2 ${rule.border} rounded-3xl p-3 shadow-sm flex flex-wrap items-center justify-between gap-2`}
+      >
+        <div className="flex items-center gap-2">
+          <div
+            className={`w-10 h-10 rounded-xl bg-gradient-to-br ${rule.color} text-white flex items-center justify-center shrink-0`}
+          >
+            <BookOpen className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-black uppercase tracking-wider opacity-70">
+              Interactive Lesson
+            </div>
+            <h2 className={`font-black text-lg leading-tight ${rule.text}`}>
+              {rule.label}: {rule.title}
+            </h2>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onStartPractice(rule.id)}
+            className="bg-white hover:bg-emerald-50 text-emerald-800 border-2 border-emerald-300 px-3 py-1.5 rounded-xl font-black text-xs sm:text-sm"
+          >
+            Practice
+          </button>
+          <button
+            onClick={() => onStartQuiz(rule.id)}
+            className={`bg-gradient-to-r ${rule.color} text-white px-3 py-1.5 rounded-xl font-black text-xs sm:text-sm`}
+          >
+            Quiz
+          </button>
+        </div>
+      </div>
+
+      {/* Step Progress Dots */}
+      <div className="flex justify-center items-center gap-2">
+        {[0, 1, 2].map((i) => (
+          <button
+            key={i}
+            onClick={() => {
+              clearLessonTimers();
+              sound.playPop();
+              setStep(i);
+            }}
+            className={`h-3 rounded-full transition-all ${
+              step === i ? "w-10 bg-indigo-600" : "w-3 bg-indigo-200"
+            }`}
+            aria-label={`Lesson step ${i + 1}`}
+          />
+        ))}
+      </div>
+
+      <div className="bg-white rounded-3xl border-4 border-indigo-200 p-4 sm:p-6 shadow-md">
+        {rule.category === "COINS"
+          ? renderCoinLessonBody()
+          : renderPlaceValueLessonBody()}
+      </div>
+
+      {/* Prev / Next Navigation */}
+      <div className="flex justify-between items-center gap-3">
+        <button
+          onClick={() => {
+            clearLessonTimers();
+            sound.playPop();
+            if (step > 0) setStep((s) => s - 1);
+            else onBackHome();
+          }}
+          className="flex items-center gap-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-black px-5 py-3 rounded-2xl"
+        >
+          <ChevronLeft className="w-5 h-5" />
+          {step === 0 ? "Back Home" : "Previous"}
+        </button>
+
+        {step < totalSteps - 1 ? (
+          <button
+            onClick={() => {
+              clearLessonTimers();
+              sound.playPop();
+              setStep((s) => s + 1);
+            }}
+            className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white font-black px-6 py-3 rounded-2xl border-b-4 border-indigo-800"
+          >
+            Next Step
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        ) : (
+          <button
+            onClick={() => {
+              clearLessonTimers();
+              sound.playPop();
+              setStep(0);
+            }}
+            className="flex items-center gap-1 bg-amber-100 hover:bg-amber-200 text-amber-900 border-2 border-amber-300 font-black px-5 py-3 rounded-2xl"
+          >
+            <RefreshCw className="w-4 h-4" /> Replay Lesson
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
 // 6. MAIN APPLICATION COMPONENT
 // ==========================================
 export default function App() {
@@ -1380,6 +3049,9 @@ export default function App() {
 
   // Dashboard state
   const [expandedQuizzes, setExpandedQuizzes] = useState({});
+
+  // Lesson State
+  const [activeLessonRuleKey, setActiveLessonRuleKey] = useState("COINS_PENNY");
 
   // Practice State
   const [practiceCustomStart, setPracticeCustomStart] = useState("");
@@ -1411,7 +3083,7 @@ export default function App() {
     animTimersRef.current = [];
   };
 
-  // Hydration from PocketBase & Local Storage (for device persistence)
+  // Hydration from PocketBase & Local Storage
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -1433,7 +3105,6 @@ export default function App() {
     loadData();
   }, []);
 
-  // Update Local Storage when active ID changes (client-specific tracking)
   useEffect(() => {
     try {
       if (activeStudentId)
@@ -1444,7 +3115,6 @@ export default function App() {
     }
   }, [activeStudentId]);
 
-  // Navigate to HOME if we have an active student upon load
   useEffect(() => {
     if (!isLoadingData && activeStudentId && currentView === "PROFILES") {
       const exists = students.some((s) => s.id === activeStudentId);
@@ -1469,10 +3139,6 @@ export default function App() {
     setTimeout(() => setCelebrationMsg(null), 2800);
   };
 
-  /**
-   * Functional state updater approach strictly adapted for PocketBase:
-   * Updates React state optimistically and then syncs with PocketBase.
-   */
   const updateActiveStudentState = async (updaterFn) => {
     if (!activeStudentId) return;
 
@@ -1577,6 +3243,16 @@ export default function App() {
     }
   };
 
+  // Lesson Mode
+  const handleStartLesson = (rk) => {
+    clearAnimTimers();
+    sound.playPop();
+    setActiveLessonRuleKey(rk);
+    setCurrentView("LESSON");
+    const rule = MATH_RULES[rk];
+    if (rule) sound.speak(`Lesson time! ${rule.label}. ${rule.voiceRule}`);
+  };
+
   // Practice Mode
   const loadNewPracticeQuestion = (
     ruleKeyOverride = selectedRuleKey,
@@ -1595,23 +3271,25 @@ export default function App() {
     setPracticeAnimStep(-1);
     setPracticeShowHint(false);
     setPracticeFirstTry(true);
-    sound.speak(
-      `What is ${nextQ.startNum} ${nextQ.rule.op === "+" ? "plus" : "minus"} ${nextQ.rule.val}?`,
-    );
+    sound.speak(nextQ.voicePrompt);
   };
 
   const playStepAnimationSequence = (q, onComplete) => {
     clearAnimTimers();
     setPracticeAnimStep(-1);
 
-    const stepDuration = 2800;
+    const stepDuration = q.rule.category === "COINS" ? 1600 : 2600;
 
     q.steps.forEach((step, idx) => {
       const t = setTimeout(
         () => {
           setPracticeAnimStep(idx);
-          sound.playHop(Math.abs(step.to - step.from) >= 2);
-          sound.speak(step.voice);
+          const isBig =
+            step.from !== undefined && step.to !== undefined
+              ? Math.abs(step.to - step.from) >= 2
+              : false;
+          sound.playHop(isBig);
+          if (step.voice) sound.speak(step.voice);
         },
         idx * stepDuration + 150,
       );
@@ -1776,25 +3454,29 @@ export default function App() {
     if (isRight) sound.playSuccess();
     else sound.playGentleOops();
 
-    currentQ.steps.forEach((step, idx) => {
+    const quizStepDelay = currentQ.rule.category === "COINS" ? 350 : 650;
+    currentQ.steps.forEach((_, idx) => {
       const t = setTimeout(
         () => {
           setQuizAnimStep(idx);
           sound.playHop();
         },
-        idx * 700 + 100,
+        idx * quizStepDelay + 100,
       );
       animTimersRef.current.push(t);
     });
 
+    const unit = currentQ.answerUnit || "";
     const newAnswers = [
       ...quizAnswers,
       {
         questionKey: currentQ.key,
-        equation: `${currentQ.startNum} ${currentQ.rule.op}${currentQ.rule.val} = ${currentQ.answer}`,
+        equation:
+          currentQ.equationLog ||
+          `${currentQ.startNum} ${currentQ.rule.op}${currentQ.rule.val} = ${currentQ.answer}`,
         ruleId: currentQ.rule.id,
-        chosen: chosenNum,
-        correctAnswer: currentQ.answer,
+        chosen: `${chosenNum}${unit}`,
+        correctAnswer: `${currentQ.answer}${unit}`,
         isCorrect: isRight,
       },
     ];
@@ -1867,7 +3549,7 @@ export default function App() {
           });
         }
       },
-      currentQ.steps.length * 700 + 1100,
+      Math.min(currentQ.steps.length * quizStepDelay + 1100, 3200),
     );
     animTimersRef.current.push(advanceTimer);
   };
@@ -1998,17 +3680,15 @@ export default function App() {
       </div>
       <div className="flex items-center gap-2 sm:gap-3">
         {activeStudent && currentView !== "PROFILES" && (
-          <>
-            <button
-              onClick={() => setCurrentView("STICKERS")}
-              className="flex items-center gap-1 bg-amber-100 px-3 py-1.5 rounded-xl border-2 border-amber-400"
-            >
-              <Star className="w-5 h-5 text-amber-500 fill-amber-400" />
-              <span className="font-black text-amber-900">
-                {activeStudent.stars || 0}
-              </span>
-            </button>
-          </>
+          <button
+            onClick={() => setCurrentView("STICKERS")}
+            className="flex items-center gap-1 bg-amber-100 px-3 py-1.5 rounded-xl border-2 border-amber-400"
+          >
+            <Star className="w-5 h-5 text-amber-500 fill-amber-400" />
+            <span className="font-black text-amber-900">
+              {activeStudent.stars || 0}
+            </span>
+          </button>
         )}
         <button
           onClick={() => setCurrentView("DASHBOARD")}
@@ -2121,6 +3801,62 @@ export default function App() {
     </div>
   );
 
+  const renderLessonCardGrid = (
+    ruleKeys,
+    gridClass = "grid-cols-2 md:grid-cols-5",
+    includeLessonButton = false,
+  ) => (
+    <div className={`grid ${gridClass} gap-3`}>
+      {ruleKeys.map((rk) => {
+        const rule = MATH_RULES[rk];
+        return (
+          <div
+            key={rk}
+            className={`${rule.bgLight} border-2 ${rule.border} rounded-2xl p-3 flex flex-col justify-between`}
+          >
+            <div className="flex justify-between items-start">
+              <span
+                className={`bg-gradient-to-br ${rule.color} text-white font-black text-base px-2 py-1 rounded-lg`}
+              >
+                {rule.label}
+              </span>
+            </div>
+            <h4 className={`font-black text-sm mt-2 ${rule.text}`}>
+              {rule.title}
+            </h4>
+            <div className="space-y-1.5 mt-3">
+              {includeLessonButton && (
+                <button
+                  onClick={() => handleStartLesson(rk)}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 rounded-lg font-black text-xs flex items-center justify-center gap-1 shadow-sm active:scale-95 transition-transform"
+                >
+                  <BookOpen className="w-3.5 h-3.5" /> Lesson
+                </button>
+              )}
+              <div className="flex gap-1">
+                <button
+                  onClick={() => {
+                    handlePracticeRuleSelect(rk);
+                    setCurrentView("PRACTICE");
+                  }}
+                  className="flex-1 bg-white text-indigo-900 border-2 border-indigo-200 py-1 rounded-lg font-black text-xs active:scale-95 transition-transform"
+                >
+                  Practice
+                </button>
+                <button
+                  onClick={() => startNewQuiz(rk)}
+                  className={`flex-1 bg-gradient-to-r ${rule.color} text-white py-1 rounded-lg font-black text-xs active:scale-95 transition-transform`}
+                >
+                  Quiz
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
   const renderHomeView = () => {
     if (!activeStudent) return renderProfilesView();
     return (
@@ -2132,56 +3868,40 @@ export default function App() {
               Hi, {activeStudent.name}!
             </h2>
             <p className="font-bold text-indigo-100 text-sm">
-              Pick a rule below to Practice or Quiz!
+              Pick a topic below for a Lesson, Practice, or Quiz!
             </p>
           </div>
         </div>
 
+        {/* Counting Coins */}
+        <div>
+          <h3 className="text-xl font-black text-indigo-950 mb-3 bg-amber-100 inline-block px-3 py-1 rounded-lg border-2 border-amber-300">
+            Counting Coins 🪙
+          </h3>
+          {renderLessonCardGrid(COIN_RULES, "grid-cols-2 md:grid-cols-5", true)}
+        </div>
+
+        {/* Place Value: 1, 2, & 3-Digit Numbers */}
+        <div>
+          <h3 className="text-xl font-black text-indigo-950 mb-3 bg-sky-100 inline-block px-3 py-1 rounded-lg border-2 border-sky-300">
+            1, 2 & 3-Digit Numbers (Positional Digits) 🔢
+          </h3>
+          {renderLessonCardGrid(
+            PLACE_VALUE_RULES,
+            "grid-cols-2 md:grid-cols-4",
+            true,
+          )}
+        </div>
+
+        {/* Skip & Sliding Counts */}
         <div>
           <h3 className="text-xl font-black text-indigo-950 mb-3 bg-pink-100 inline-block px-3 py-1 rounded-lg border-2 border-pink-300">
             Skip & Sliding Counts (Up to 200) 🦘
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {SKIP_COUNT_RULES.map((rk) => {
-              const rule = MATH_RULES[rk];
-              return (
-                <div
-                  key={rk}
-                  className={`${rule.bgLight} border-2 ${rule.border} rounded-2xl p-3 flex flex-col justify-between`}
-                >
-                  <div className="flex justify-between items-start">
-                    <span
-                      className={`bg-gradient-to-br ${rule.color} text-white font-black text-base px-2 py-1 rounded-lg`}
-                    >
-                      {rule.label}
-                    </span>
-                  </div>
-                  <h4 className={`font-black text-sm mt-2 ${rule.text}`}>
-                    {rule.title}
-                  </h4>
-                  <div className="flex gap-1 mt-3">
-                    <button
-                      onClick={() => {
-                        handlePracticeRuleSelect(rk);
-                        setCurrentView("PRACTICE");
-                      }}
-                      className="flex-1 bg-white text-indigo-900 border-2 border-indigo-200 py-1 rounded-lg font-black text-xs"
-                    >
-                      Practice
-                    </button>
-                    <button
-                      onClick={() => startNewQuiz(rk)}
-                      className={`flex-1 bg-gradient-to-r ${rule.color} text-white py-1 rounded-lg font-black text-xs`}
-                    >
-                      Quiz
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          {renderLessonCardGrid(SKIP_COUNT_RULES, "grid-cols-2 md:grid-cols-5")}
         </div>
 
+        {/* Challenge Quizzes */}
         <div>
           <h3 className="text-xl font-black text-indigo-950 mb-3 bg-purple-100 inline-block px-3 py-1 rounded-lg border-2 border-purple-300">
             Challenge Quizzes 🏆
@@ -2234,110 +3954,48 @@ export default function App() {
           </div>
         </div>
 
+        {/* Addition Rules */}
         <div>
           <h3 className="text-xl font-black text-indigo-950 mb-3 bg-emerald-100 inline-block px-3 py-1 rounded-lg">
             Addition Rules ➡️
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {["+1", "+2", "+3", "+4", "+5", "+6", "+7", "+8", "+9", "+10"].map(
-              (rk) => {
-                const rule = MATH_RULES[rk];
-                return (
-                  <div
-                    key={rk}
-                    className={`${rule.bgLight} border-2 ${rule.border} rounded-2xl p-3 flex flex-col justify-between`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <span
-                        className={`bg-gradient-to-br ${rule.color} text-white font-black text-lg px-2 py-1 rounded-lg`}
-                      >
-                        {rule.label}
-                      </span>
-                    </div>
-                    <h4 className={`font-black text-sm mt-2 ${rule.text}`}>
-                      {rule.title}
-                    </h4>
-                    <div className="flex gap-1 mt-3">
-                      <button
-                        onClick={() => {
-                          handlePracticeRuleSelect(rk);
-                          setCurrentView("PRACTICE");
-                        }}
-                        className="flex-1 bg-white text-emerald-800 border-2 border-emerald-300 py-1 rounded-lg font-black text-xs"
-                      >
-                        Practice
-                      </button>
-                      <button
-                        onClick={() => startNewQuiz(rk)}
-                        className="flex-1 bg-emerald-500 text-white border-2 border-emerald-600 py-1 rounded-lg font-black text-xs"
-                      >
-                        Quiz
-                      </button>
-                    </div>
-                  </div>
-                );
-              },
-            )}
-          </div>
+          {renderLessonCardGrid(
+            ["+1", "+2", "+3", "+4", "+5", "+6", "+7", "+8", "+9", "+10"],
+            "grid-cols-2 md:grid-cols-5",
+          )}
         </div>
 
+        {/* Subtraction Rules */}
         <div>
           <h3 className="text-xl font-black text-indigo-950 mb-3 bg-orange-100 inline-block px-3 py-1 rounded-lg">
             Subtraction Rules ⬅️
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {["-1", "-2", "-3", "-4", "-5", "-6", "-7", "-8", "-9", "-10"].map(
-              (rk) => {
-                const rule = MATH_RULES[rk];
-                return (
-                  <div
-                    key={rk}
-                    className={`${rule.bgLight} border-2 ${rule.border} rounded-2xl p-3 flex flex-col justify-between`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <span
-                        className={`bg-gradient-to-br ${rule.color} text-white font-black text-lg px-2 py-1 rounded-lg`}
-                      >
-                        {rule.label}
-                      </span>
-                    </div>
-                    <h4 className={`font-black text-sm mt-2 ${rule.text}`}>
-                      {rule.title}
-                    </h4>
-                    <div className="flex gap-1 mt-3">
-                      <button
-                        onClick={() => {
-                          handlePracticeRuleSelect(rk);
-                          setCurrentView("PRACTICE");
-                        }}
-                        className="flex-1 bg-white text-orange-800 border-2 border-orange-300 py-1 rounded-lg font-black text-xs"
-                      >
-                        Practice
-                      </button>
-                      <button
-                        onClick={() => startNewQuiz(rk)}
-                        className="flex-1 bg-orange-500 text-white border-2 border-orange-600 py-1 rounded-lg font-black text-xs"
-                      >
-                        Quiz
-                      </button>
-                    </div>
-                  </div>
-                );
-              },
-            )}
-          </div>
+          {renderLessonCardGrid(
+            ["-1", "-2", "-3", "-4", "-5", "-6", "-7", "-8", "-9", "-10"],
+            "grid-cols-2 md:grid-cols-5",
+          )}
         </div>
       </div>
     );
   };
 
   const renderPracticeView = () => {
-    const { startNum, rule, answer, options } = practiceQuestion;
+    const { startNum, rule, answer, options, answerUnit = "" } =
+      practiceQuestion;
     const isCustomizableRule = Boolean(rule.max);
+    const isCoins = rule.category === "COINS";
+    const isPlaceValue = rule.category === "PLACE_VALUE";
+
+    const helpButtonText = isCoins
+      ? "Show me how to count!"
+      : isPlaceValue
+        ? "Show me the place values!"
+        : "Show me the hops!";
+
     return (
       <div className="max-w-4xl mx-auto px-2 py-4 space-y-3">
         <div
-          className={`${rule.bgLight} border-2 ${rule.border} rounded-3xl p-3 shadow-sm flex items-center justify-between gap-2`}
+          className={`${rule.bgLight} border-2 ${rule.border} rounded-3xl p-3 shadow-sm flex flex-wrap items-center justify-between gap-2`}
         >
           <div className="flex items-center gap-2">
             <button
@@ -2350,20 +4008,46 @@ export default function App() {
               {rule.label}: {rule.title}
             </h3>
           </div>
-          <div className="bg-white px-4 py-2 rounded-2xl border-2 border-indigo-200 text-2xl font-black text-indigo-950">
-            {startNum}{" "}
-            <span
-              className={
-                rule.op === "+" ? "text-emerald-600" : "text-orange-500"
-              }
-            >
-              {rule.op}
-              {rule.val}
-            </span>{" "}
-            ={" "}
-            <span className="text-slate-400">
-              {practiceIsCorrect === true ? answer : "?"}
-            </span>
+
+          <div className="flex items-center gap-2">
+            {(isCoins || isPlaceValue) && (
+              <button
+                onClick={() => handleStartLesson(rule.id)}
+                className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl font-black text-xs sm:text-sm"
+              >
+                <BookOpen className="w-4 h-4" /> Lesson
+              </button>
+            )}
+            {!isCoins && !isPlaceValue ? (
+              <div className="bg-white px-4 py-2 rounded-2xl border-2 border-indigo-200 text-2xl font-black text-indigo-950">
+                {startNum}{" "}
+                <span
+                  className={
+                    rule.op === "+" ? "text-emerald-600" : "text-orange-500"
+                  }
+                >
+                  {rule.op}
+                  {rule.val}
+                </span>{" "}
+                ={" "}
+                <span className="text-slate-400">
+                  {practiceIsCorrect === true ? answer : "?"}
+                </span>
+              </div>
+            ) : (
+              <div className="bg-white px-4 py-2 rounded-2xl border-2 border-indigo-200 text-xl font-black text-indigo-950">
+                Answer:{" "}
+                <span
+                  className={
+                    practiceIsCorrect === true
+                      ? "text-emerald-600"
+                      : "text-slate-400"
+                  }
+                >
+                  {practiceIsCorrect === true ? `${answer}${answerUnit}` : "?"}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -2403,22 +4087,37 @@ export default function App() {
           </div>
         )}
 
-        <InteractiveNumberLine
-          question={practiceQuestion}
-          mascotEmoji={activeStudent?.avatarEmoji}
-          animStepIndex={practiceAnimStep}
-          showHintPreview={practiceShowHint}
-          onNumberTap={handlePracticeAnswerTap}
-          selectedAnswer={practiceSelectedAns}
-          isCorrect={practiceIsCorrect}
-        />
+        {isCoins ? (
+          <InteractiveCoinBoard
+            question={practiceQuestion}
+            animStepIndex={practiceAnimStep}
+            showHintPreview={practiceShowHint}
+          />
+        ) : isPlaceValue ? (
+          <InteractivePlaceValueBoard
+            question={practiceQuestion}
+            animStepIndex={practiceAnimStep}
+            showHintPreview={practiceShowHint}
+            isAnsweredCorrectly={practiceIsCorrect === true}
+          />
+        ) : (
+          <InteractiveNumberLine
+            question={practiceQuestion}
+            mascotEmoji={activeStudent?.avatarEmoji}
+            animStepIndex={practiceAnimStep}
+            showHintPreview={practiceShowHint}
+            onNumberTap={handlePracticeAnswerTap}
+            selectedAnswer={practiceSelectedAns}
+            isCorrect={practiceIsCorrect}
+          />
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-1">
           <button
             onClick={handleDemonstrateRule}
             className="sm:col-span-4 bg-amber-100 py-2 rounded-2xl border-2 border-amber-400 text-amber-900 font-bold flex justify-center items-center gap-2"
           >
-            <HelpCircle className="w-5 h-5" /> Show me the hops!
+            <HelpCircle className="w-5 h-5" /> {helpButtonText}
           </button>
           {practiceIsCorrect === true ? (
             <div className="sm:col-span-4 bg-emerald-100 border-2 border-emerald-500 rounded-3xl p-4 flex justify-between items-center">
@@ -2455,6 +4154,7 @@ export default function App() {
                 className={`py-4 rounded-2xl font-black text-2xl border-b-4 transition-all ${practiceSelectedAns === opt && practiceIsCorrect === false ? "bg-rose-200 border-rose-500 text-rose-900" : "bg-white border-indigo-300 text-indigo-950"}`}
               >
                 {opt}
+                {answerUnit}
               </button>
             ))
           )}
@@ -2467,7 +4167,6 @@ export default function App() {
     if (quizCompleted) {
       const score = quizAnswers.filter((a) => a.isCorrect).length;
       const isPerfect = score === quizQuestions.length;
-
       const reward = calculateQuizReward(quizRuleScope, score);
 
       return (
@@ -2507,8 +4206,13 @@ export default function App() {
         </div>
       );
     }
+
     const currentQ = quizQuestions[quizCurrentIndex];
     const isAnswered = quizLockedChoice !== null;
+    const isCoins = currentQ.rule.category === "COINS";
+    const isPlaceValue = currentQ.rule.category === "PLACE_VALUE";
+    const unit = currentQ.answerUnit || "";
+
     return (
       <div className="max-w-4xl mx-auto px-2 py-4 space-y-3">
         <div className="flex justify-between items-center bg-white p-3 rounded-2xl border-2 border-amber-300 mb-3 shadow-sm">
@@ -2523,7 +4227,7 @@ export default function App() {
                   ? "➕ All Addition"
                   : quizRuleScope === "SUB"
                     ? "➖ All Subtraction"
-                    : `🎯 Rule: ${MATH_RULES[quizRuleScope]?.label || quizRuleScope}`}
+                    : `🎯 Quiz: ${MATH_RULES[quizRuleScope]?.label || quizRuleScope}`}
             </span>
           </div>
           <div className="flex items-center gap-1 sm:gap-1.5 bg-indigo-50/80 px-3 py-2 rounded-xl border-2 border-indigo-100 flex-wrap justify-end">
@@ -2550,18 +4254,55 @@ export default function App() {
             })}
           </div>
         </div>
-        <div className="bg-indigo-50 p-4 rounded-3xl border-2 border-indigo-200 text-center text-4xl font-black text-indigo-950">
-          {currentQ.startNum}{" "}
-          <span
-            className={
-              currentQ.rule.op === "+" ? "text-emerald-600" : "text-orange-600"
-            }
-          >
-            {currentQ.rule.op}
-            {currentQ.rule.val}
-          </span>{" "}
-          = {isAnswered ? currentQ.answer : "?"}
-        </div>
+
+        {isCoins ? (
+          <div className="space-y-2">
+            <div className="flex justify-end">
+              <button
+                onClick={() => sound.speak(currentQ.voicePrompt)}
+                className="flex items-center gap-1.5 bg-amber-100 text-amber-900 border-2 border-amber-300 px-3 py-1 rounded-xl font-bold text-sm"
+              >
+                <Volume2 className="w-4 h-4" /> Read Question
+              </button>
+            </div>
+            <InteractiveCoinBoard
+              question={currentQ}
+              animStepIndex={quizAnimStep}
+              showHintPreview={false}
+            />
+          </div>
+        ) : isPlaceValue ? (
+          <div className="space-y-2">
+            <div className="flex justify-end">
+              <button
+                onClick={() => sound.speak(currentQ.voicePrompt)}
+                className="flex items-center gap-1.5 bg-indigo-100 text-indigo-900 border-2 border-indigo-300 px-3 py-1 rounded-xl font-bold text-sm"
+              >
+                <Volume2 className="w-4 h-4" /> Read Question
+              </button>
+            </div>
+            <InteractivePlaceValueBoard
+              question={currentQ}
+              animStepIndex={quizAnimStep}
+              showHintPreview={false}
+              isAnsweredCorrectly={isAnswered}
+            />
+          </div>
+        ) : (
+          <div className="bg-indigo-50 p-4 rounded-3xl border-2 border-indigo-200 text-center text-4xl font-black text-indigo-950">
+            {currentQ.startNum}{" "}
+            <span
+              className={
+                currentQ.rule.op === "+" ? "text-emerald-600" : "text-orange-600"
+              }
+            >
+              {currentQ.rule.op}
+              {currentQ.rule.val}
+            </span>{" "}
+            = {isAnswered ? currentQ.answer : "?"}
+          </div>
+        )}
+
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {currentQ.options.map((opt) => {
             let style = "bg-white border-indigo-300 text-indigo-950";
@@ -2580,6 +4321,7 @@ export default function App() {
                 className={`py-4 rounded-2xl font-black text-2xl border-b-4 ${style}`}
               >
                 {opt}
+                {unit}
               </button>
             );
           })}
@@ -2719,7 +4461,7 @@ export default function App() {
                                     key={i}
                                     className={`flex justify-between items-center p-2 rounded border ${log.isCorrect ? "bg-emerald-50 border-emerald-200" : "bg-rose-50 border-rose-200"}`}
                                   >
-                                    <div className="font-bold text-slate-800">
+                                    <div className="font-bold text-slate-800 text-sm">
                                       {log.equation}
                                     </div>
                                     <div className="text-sm">
@@ -2851,7 +4593,7 @@ export default function App() {
                     <Download size={14} />
                   </div>
                 )}
-                <div className={`text-4xl mb-1 filter drop-shadow-sm`}>
+                <div className="text-4xl mb-1 filter drop-shadow-sm">
                   {st.emoji}
                 </div>
                 <div className="text-[10px] font-black uppercase tracking-wider mb-1">
@@ -2927,6 +4669,17 @@ export default function App() {
       <main>
         {currentView === "PROFILES" && renderProfilesView()}
         {currentView === "HOME" && renderHomeView()}
+        {currentView === "LESSON" && MATH_RULES[activeLessonRuleKey] && (
+          <InteractiveLessonView
+            rule={MATH_RULES[activeLessonRuleKey]}
+            onStartPractice={(rk) => {
+              handlePracticeRuleSelect(rk);
+              setCurrentView("PRACTICE");
+            }}
+            onStartQuiz={(rk) => startNewQuiz(rk)}
+            onBackHome={() => setCurrentView("HOME")}
+          />
+        )}
         {currentView === "PRACTICE" && renderPracticeView()}
         {currentView === "QUIZ" && renderQuizView()}
         {currentView === "STICKERS" && renderStickersView()}

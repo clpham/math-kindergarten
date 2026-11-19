@@ -345,7 +345,7 @@ const MATH_RULES = {
     max: 200,
     label: "Count by 5s",
     title: "Forward to 200",
-    voiceRule: "Count up by fives!",
+    voiceRule: "Count up by fives! Every number ends in five or zero.",
     color: "from-pink-400 to-rose-600",
     bgLight: "bg-pink-50",
     border: "border-pink-400",
@@ -2313,16 +2313,23 @@ function InteractivePlaceValueBoard({
 }
 
 // ==========================================
-// 5D. INTERACTIVE LESSON VIEW (COINS & PLACE VALUE)
+// 5D. INTERACTIVE LESSON VIEW (ALL TOPICS)
 // ==========================================
 function InteractiveLessonView({
   rule,
+  mascotEmoji = "🐸",
   onStartPractice,
   onStartQuiz,
   onBackHome,
 }) {
   const [step, setStep] = useState(0);
   const totalSteps = 3;
+  const lessonTimersRef = useRef([]);
+
+  const clearLessonTimers = () => {
+    lessonTimersRef.current.forEach((t) => clearTimeout(t));
+    lessonTimersRef.current = [];
+  };
 
   // Coin Sandbox State (Step 1)
   const sandboxCoins = useMemo(() => {
@@ -2339,22 +2346,42 @@ function InteractiveLessonView({
   }, [rule]);
 
   const [tappedCoinIndices, setTappedCoinIndices] = useState([]);
-  const lessonTimersRef = useRef([]);
 
   // Place Value Number Builder State (Step 1)
   const [builderH, setBuilderH] = useState(0);
   const [builderT, setBuilderT] = useState(0);
   const [builderO, setBuilderO] = useState(5);
 
-  const clearLessonTimers = () => {
-    lessonTimersRef.current.forEach((t) => clearTimeout(t));
-    lessonTimersRef.current = [];
-  };
+  // Number Line Sandbox State (Addition, Subtraction, Skip & Sliding Counts)
+  const [demoQuestion, setDemoQuestion] = useState(() =>
+    !rule.category ? generateMathQuestion(rule.id) : null,
+  );
+  const [demoAnimStep, setDemoAnimStep] = useState(-1);
+
+  const workedExamples = useMemo(() => {
+    if (rule.category) return [];
+    const list = [];
+    const used = [];
+    for (let i = 0; i < 3; i++) {
+      const q = generateMathQuestion(rule.id, used);
+      used.push(q.key);
+      list.push(q);
+    }
+    return list;
+  }, [rule]);
 
   useEffect(() => {
     clearLessonTimers();
     setStep(0);
     setTappedCoinIndices([]);
+    setDemoAnimStep(-1);
+
+    if (!rule.category) {
+      setDemoQuestion(generateMathQuestion(rule.id));
+    } else {
+      setDemoQuestion(null);
+    }
+
     if (rule.pvMode === "1digit") {
       setBuilderH(0);
       setBuilderT(0);
@@ -2402,6 +2429,22 @@ function InteractiveLessonView({
     });
   };
 
+  const handlePlayNumberLineDemo = (qOverride = null) => {
+    const q = qOverride || demoQuestion;
+    if (!q) return;
+    clearLessonTimers();
+    setDemoAnimStep(-1);
+    const stepDuration = 2300;
+    q.steps.forEach((s, idx) => {
+      const t = setTimeout(() => {
+        setDemoAnimStep(idx);
+        sound.playHop(Math.abs(s.to - s.from) >= 2);
+        if (s.voice) sound.speak(s.voice);
+      }, idx * stepDuration + 150);
+      lessonTimersRef.current.push(t);
+    });
+  };
+
   const builderNumber = builderH * 100 + builderT * 10 + builderO;
 
   const speakBuilderNumber = (h, t, o) => {
@@ -2415,6 +2458,7 @@ function InteractiveLessonView({
     sound.speak(`${val}! That is ${parts.join(", ")}!`);
   };
 
+  // --- COINS LESSON ---
   const renderCoinLessonBody = () => {
     if (step === 0) {
       const coinsToIntroduce =
@@ -2426,7 +2470,10 @@ function InteractiveLessonView({
         <div className="space-y-5">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <h3 className="text-2xl font-black text-indigo-950">
-              Step 1: Meet the {rule.coinMode === "mixed" ? "Coins" : COIN_SPECS[rule.coinMode].name}
+              Step 1: Meet the{" "}
+              {rule.coinMode === "mixed"
+                ? "Coins"
+                : COIN_SPECS[rule.coinMode].name}
             </h3>
             <button
               onClick={() => sound.speak(rule.voiceRule)}
@@ -2461,7 +2508,9 @@ function InteractiveLessonView({
                   <div
                     className={`${spec.sizeClass} rounded-full bg-gradient-to-br ${spec.gradient} border-4 shadow-md flex flex-col items-center justify-center mb-3`}
                   >
-                    <span className={`font-black leading-none ${spec.textClass}`}>
+                    <span
+                      className={`font-black leading-none ${spec.textClass}`}
+                    >
                       {spec.value}¢
                     </span>
                     <span
@@ -2583,7 +2632,6 @@ function InteractiveLessonView({
       );
     }
 
-    // Step 2 (Final Recap)
     return (
       <div className="space-y-5 text-center py-2">
         <div className="text-5xl">🪙✨</div>
@@ -2617,6 +2665,7 @@ function InteractiveLessonView({
     );
   };
 
+  // --- PLACE VALUE LESSON ---
   const renderPlaceValueLessonBody = () => {
     const showH = rule.pvMode === "3digit" || rule.pvMode === "mixed";
     const showT =
@@ -2726,18 +2775,12 @@ function InteractiveLessonView({
 
       const adjustDigit = (which, delta) => {
         sound.playPop();
-        let nextH = builderH;
-        let nextT = builderT;
-        let nextO = builderO;
         if (which === "H") {
-          nextH = Math.max(minH, Math.min(9, builderH + delta));
-          setBuilderH(nextH);
+          setBuilderH(Math.max(minH, Math.min(9, builderH + delta)));
         } else if (which === "T") {
-          nextT = Math.max(minT, Math.min(9, builderT + delta));
-          setBuilderT(nextT);
+          setBuilderT(Math.max(minT, Math.min(9, builderT + delta)));
         } else {
-          nextO = Math.max(minO, Math.min(9, builderO + delta));
-          setBuilderO(nextO);
+          setBuilderO(Math.max(minO, Math.min(9, builderO + delta)));
         }
       };
 
@@ -2835,7 +2878,9 @@ function InteractiveLessonView({
                   >
                     <Minus className="w-4 h-4" />
                   </button>
-                  <span className={`text-2xl font-black w-8 text-center ${col.text}`}>
+                  <span
+                    className={`text-2xl font-black w-8 text-center ${col.text}`}
+                  >
                     {col.val}
                   </span>
                   <button
@@ -2854,7 +2899,6 @@ function InteractiveLessonView({
       );
     }
 
-    // Step 2: Why Position Matters + Launch
     const comparisonExamples =
       rule.pvMode === "1digit"
         ? [
@@ -2868,8 +2912,14 @@ function InteractiveLessonView({
             ]
           : rule.pvMode === "3digit"
             ? [
-                { num: "135", desc: "1 Hundred (100) + 3 Tens (30) + 5 Ones (5)" },
-                { num: "531", desc: "5 Hundreds (500) + 3 Tens (30) + 1 One (1)" },
+                {
+                  num: "135",
+                  desc: "1 Hundred (100) + 3 Tens (30) + 5 Ones (5)",
+                },
+                {
+                  num: "531",
+                  desc: "5 Hundreds (500) + 3 Tens (30) + 1 One (1)",
+                },
               ]
             : [
                 { num: "5", desc: "5 in the Ones place = 5" },
@@ -2884,7 +2934,9 @@ function InteractiveLessonView({
         </h3>
         <div
           className={`grid gap-3 max-w-2xl mx-auto ${
-            comparisonExamples.length === 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"
+            comparisonExamples.length === 3
+              ? "grid-cols-1 sm:grid-cols-3"
+              : "grid-cols-1 sm:grid-cols-2"
           }`}
         >
           {comparisonExamples.map((ex) => (
@@ -2901,6 +2953,282 @@ function InteractiveLessonView({
               </div>
               <div className="text-sm font-bold text-indigo-800">{ex.desc}</div>
             </div>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-3 pt-2">
+          <button
+            onClick={() => onStartPractice(rule.id)}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg px-8 py-3 rounded-2xl border-b-4 border-emerald-700 active:scale-95 transition-transform"
+          >
+            Start Practice →
+          </button>
+          <button
+            onClick={() => onStartQuiz(rule.id)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg px-8 py-3 rounded-2xl border-b-4 border-indigo-800 active:scale-95 transition-transform"
+          >
+            Take 10-Question Quiz 🏆
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // --- NUMBER LINE LESSON (SKIP/SLIDING, ADDITION, SUBTRACTION) ---
+  const renderNumberLineLessonBody = () => {
+    const isSkipOrSlide = Boolean(rule.max);
+
+    if (step === 0) {
+      let patternNumbers = [];
+      let patternTip = "";
+      if (rule.id === "COUNT5") {
+        patternNumbers = [5, 10, 15, 20, 25, 30];
+        patternTip = "Notice the ones digit repeats: 5, 0, 5, 0!";
+      } else if (rule.id === "COUNT10") {
+        patternNumbers = [10, 20, 30, 40, 50, 60];
+        patternTip = "The tens digit goes up by 1 each hop, and the ones digit stays 0!";
+      } else if (rule.id === "COUNT10_BACK") {
+        patternNumbers = [60, 50, 40, 30, 20, 10];
+        patternTip = "The tens digit goes down by 1 each hop!";
+      } else if (rule.id === "SLIDE10_FWD") {
+        patternNumbers = [14, 24, 34, 44, 54];
+        patternTip = "The ones digit (4) stays the same — only the tens digit goes up by 1!";
+      } else if (rule.id === "SLIDE10_BACK") {
+        patternNumbers = [57, 47, 37, 27, 17];
+        patternTip = "The ones digit (7) stays the same — only the tens digit goes down by 1!";
+      }
+
+      const sampleQ = demoQuestion || workedExamples[0];
+
+      return (
+        <div className="space-y-5">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h3 className="text-2xl font-black text-indigo-950">
+              Step 1: Learn the Trick for {rule.label}
+            </h3>
+            <button
+              onClick={() => sound.speak(rule.voiceRule)}
+              className="flex items-center gap-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-900 border-2 border-indigo-400 px-3 py-1.5 rounded-xl font-black text-sm"
+            >
+              <Volume2 className="w-4 h-4" /> Read Rule
+            </button>
+          </div>
+
+          <div
+            className={`${rule.bgLight} border-2 ${rule.border} p-4 rounded-2xl space-y-1`}
+          >
+            <div className={`font-black text-xl ${rule.text}`}>
+              {rule.title}
+            </div>
+            <p className="text-base sm:text-lg font-bold text-slate-700">
+              {rule.voiceRule}
+            </p>
+          </div>
+
+          {isSkipOrSlide ? (
+            <div className="space-y-3">
+              <div className="text-sm font-black uppercase tracking-wider text-slate-500 text-center">
+                Tap the Pattern to Hear It!
+              </div>
+              <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3">
+                {patternNumbers.map((num, idx) => {
+                  const str = String(num);
+                  const tensPart = str.length > 1 ? str.slice(0, -1) : "";
+                  const onesPart = str.slice(-1);
+                  return (
+                    <React.Fragment key={num}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sound.playPop();
+                          sound.speak(`${num}`);
+                        }}
+                        className="bg-white border-4 border-indigo-300 hover:border-indigo-500 rounded-2xl px-4 py-2.5 text-2xl sm:text-3xl font-black shadow-sm active:scale-95 transition-transform"
+                      >
+                        <span className="text-indigo-950">{tensPart}</span>
+                        <span
+                          className={
+                            rule.sliding ? "text-rose-600 underline" : "text-indigo-950"
+                          }
+                        >
+                          {onesPart}
+                        </span>
+                      </button>
+                      {idx < patternNumbers.length - 1 && (
+                        <span className="font-black text-indigo-400 text-xl">
+                          →
+                        </span>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+              <p className="text-center font-bold text-sm text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-xl p-2.5">
+                💡 {patternTip}
+              </p>
+            </div>
+          ) : (
+            sampleQ && (
+              <div className="space-y-3">
+                <div className="text-sm font-black uppercase tracking-wider text-slate-500 text-center">
+                  How the Hops Work (Example: {sampleQ.startNum} {rule.op}
+                  {rule.val} = {sampleQ.answer})
+                </div>
+                <div className="flex flex-wrap justify-center gap-3">
+                  {sampleQ.steps.map((s, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        sound.playHop();
+                        sound.speak(s.voice);
+                      }}
+                      className="bg-white border-4 border-indigo-200 hover:border-indigo-400 rounded-2xl p-4 text-center min-w-[170px] shadow-sm active:scale-95 transition-transform"
+                    >
+                      <div className="text-xs font-black uppercase text-indigo-500 mb-1">
+                        Hop {idx + 1}: {s.label}
+                      </div>
+                      <div className="text-2xl font-black text-indigo-950">
+                        {s.from} → {s.to}
+                      </div>
+                      <div className="text-xs font-bold text-slate-600 mt-1">
+                        {s.voice}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          )}
+        </div>
+      );
+    }
+
+    if (step === 1 && demoQuestion) {
+      const canChain =
+        isSkipOrSlide &&
+        !(rule.op === "-" && demoQuestion.answer < rule.val);
+
+      return (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-2xl font-black text-indigo-950">
+              Step 2: Watch the Hops!
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => handlePlayNumberLineDemo()}
+                className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-xl font-black text-sm"
+              >
+                <Play className="w-4 h-4" /> Watch the Hops!
+              </button>
+              {canChain && (
+                <button
+                  onClick={() => {
+                    clearLessonTimers();
+                    const nextQ = generateMathQuestion(
+                      rule.id,
+                      [demoQuestion.key],
+                      demoQuestion.answer,
+                    );
+                    setDemoQuestion(nextQ);
+                    setDemoAnimStep(-1);
+                    handlePlayNumberLineDemo(nextQ);
+                  }}
+                  className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-black text-sm"
+                >
+                  Chain Next Hop →
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  clearLessonTimers();
+                  sound.playPop();
+                  const fresh = generateMathQuestion(rule.id, [
+                    demoQuestion.key,
+                  ]);
+                  setDemoQuestion(fresh);
+                  setDemoAnimStep(-1);
+                }}
+                className="flex items-center gap-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 px-3 py-1.5 rounded-xl font-bold text-sm"
+              >
+                <RefreshCw className="w-4 h-4" /> New Example
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-3 text-center text-3xl sm:text-4xl font-black text-indigo-950">
+            {demoQuestion.startNum}{" "}
+            <span
+              className={
+                rule.op === "+" ? "text-emerald-600" : "text-orange-500"
+              }
+            >
+              {rule.op}
+              {rule.val}
+            </span>{" "}
+            ={" "}
+            <span
+              className={
+                demoAnimStep >= demoQuestion.steps.length - 1
+                  ? "text-emerald-600"
+                  : "text-indigo-400"
+              }
+            >
+              {demoAnimStep >= demoQuestion.steps.length - 1
+                ? demoQuestion.answer
+                : "?"}
+            </span>
+          </div>
+
+          <InteractiveNumberLine
+            question={demoQuestion}
+            mascotEmoji={mascotEmoji}
+            animStepIndex={demoAnimStep}
+            showHintPreview={true}
+          />
+        </div>
+      );
+    }
+
+    // Step 2: Worked Examples & Ready to Go
+    return (
+      <div className="space-y-5 text-center py-2">
+        <h3 className="text-2xl sm:text-3xl font-black text-indigo-950">
+          Step 3: Try Saying These Out Loud!
+        </h3>
+        <p className="text-sm font-bold text-slate-600">
+          Tap any card to hear the equation, then jump into Practice or Quiz!
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">
+          {workedExamples.map((ex) => (
+            <button
+              key={ex.key}
+              type="button"
+              onClick={() => {
+                sound.playPop();
+                sound.speak(
+                  `${ex.startNum} ${rule.op === "+" ? "plus" : "minus"} ${rule.val} equals ${ex.answer}!`,
+                );
+              }}
+              className={`${rule.bgLight} border-2 ${rule.border} rounded-2xl p-4 hover:scale-105 active:scale-95 transition-transform shadow-sm`}
+            >
+              <div className="text-2xl sm:text-3xl font-black text-indigo-950">
+                {ex.startNum}{" "}
+                <span
+                  className={
+                    rule.op === "+" ? "text-emerald-600" : "text-orange-600"
+                  }
+                >
+                  {rule.op}
+                  {rule.val}
+                </span>{" "}
+                = {ex.answer}
+              </div>
+              <div className="text-xs font-bold text-slate-500 mt-1 flex items-center justify-center gap-1">
+                <Volume2 className="w-3.5 h-3.5" /> Tap to listen
+              </div>
+            </button>
           ))}
         </div>
 
@@ -2980,7 +3308,9 @@ function InteractiveLessonView({
       <div className="bg-white rounded-3xl border-4 border-indigo-200 p-4 sm:p-6 shadow-md">
         {rule.category === "COINS"
           ? renderCoinLessonBody()
-          : renderPlaceValueLessonBody()}
+          : rule.category === "PLACE_VALUE"
+            ? renderPlaceValueLessonBody()
+            : renderNumberLineLessonBody()}
       </div>
 
       {/* Prev / Next Navigation */}
@@ -3051,7 +3381,7 @@ export default function App() {
   const [expandedQuizzes, setExpandedQuizzes] = useState({});
 
   // Lesson State
-  const [activeLessonRuleKey, setActiveLessonRuleKey] = useState("COINS_PENNY");
+  const [activeLessonRuleKey, setActiveLessonRuleKey] = useState("+1");
 
   // Practice State
   const [practiceCustomStart, setPracticeCustomStart] = useState("");
@@ -3804,7 +4134,7 @@ export default function App() {
   const renderLessonCardGrid = (
     ruleKeys,
     gridClass = "grid-cols-2 md:grid-cols-5",
-    includeLessonButton = false,
+    includeLessonButton = true,
   ) => (
     <div className={`grid ${gridClass} gap-3`}>
       {ruleKeys.map((rk) => {
@@ -3898,7 +4228,11 @@ export default function App() {
           <h3 className="text-xl font-black text-indigo-950 mb-3 bg-pink-100 inline-block px-3 py-1 rounded-lg border-2 border-pink-300">
             Skip & Sliding Counts (Up to 200) 🦘
           </h3>
-          {renderLessonCardGrid(SKIP_COUNT_RULES, "grid-cols-2 md:grid-cols-5")}
+          {renderLessonCardGrid(
+            SKIP_COUNT_RULES,
+            "grid-cols-2 md:grid-cols-5",
+            true,
+          )}
         </div>
 
         {/* Challenge Quizzes */}
@@ -3962,6 +4296,7 @@ export default function App() {
           {renderLessonCardGrid(
             ["+1", "+2", "+3", "+4", "+5", "+6", "+7", "+8", "+9", "+10"],
             "grid-cols-2 md:grid-cols-5",
+            true,
           )}
         </div>
 
@@ -3973,6 +4308,7 @@ export default function App() {
           {renderLessonCardGrid(
             ["-1", "-2", "-3", "-4", "-5", "-6", "-7", "-8", "-9", "-10"],
             "grid-cols-2 md:grid-cols-5",
+            true,
           )}
         </div>
       </div>
@@ -4010,14 +4346,12 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
-            {(isCoins || isPlaceValue) && (
-              <button
-                onClick={() => handleStartLesson(rule.id)}
-                className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl font-black text-xs sm:text-sm"
-              >
-                <BookOpen className="w-4 h-4" /> Lesson
-              </button>
-            )}
+            <button
+              onClick={() => handleStartLesson(rule.id)}
+              className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl font-black text-xs sm:text-sm"
+            >
+              <BookOpen className="w-4 h-4" /> Lesson
+            </button>
             {!isCoins && !isPlaceValue ? (
               <div className="bg-white px-4 py-2 rounded-2xl border-2 border-indigo-200 text-2xl font-black text-indigo-950">
                 {startNum}{" "}
@@ -4672,6 +5006,7 @@ export default function App() {
         {currentView === "LESSON" && MATH_RULES[activeLessonRuleKey] && (
           <InteractiveLessonView
             rule={MATH_RULES[activeLessonRuleKey]}
+            mascotEmoji={activeStudent?.avatarEmoji}
             onStartPractice={(rk) => {
               handlePracticeRuleSelect(rk);
               setCurrentView("PRACTICE");

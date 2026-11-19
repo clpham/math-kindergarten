@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useId } from "react";
 import {
   Volume2,
   VolumeX,
@@ -23,6 +23,10 @@ import {
   Minus,
 } from "lucide-react";
 import PocketBase from "pocketbase";
+import pennyImg from "./coins/penny.png";
+import nickelImg from "./coins/nickel.jpg";
+import dimeImg from "./coins/dime.png";
+import quarterImg from "./coins/quarter.png";
 
 // Initialize PocketBase (Update this URL to match your server if hosted remotely)
 const pb = new PocketBase("https://eq14x.tail2c693e.ts.net/pocketbase");
@@ -42,51 +46,51 @@ const COIN_SPECS = {
     name: "Quarter",
     value: 25,
     short: "Q",
-    tip: "Biggest silver coin. Worth 25 cents!",
-    sizeClass: "w-20 h-20 sm:w-24 sm:h-24",
-    textClass: "text-xl sm:text-2xl",
-    subClass: "text-[10px]",
-    gradient:
-      "from-slate-200 via-slate-100 to-slate-300 border-slate-500 text-slate-800",
-  },
-  dime: {
-    id: "dime",
-    name: "Dime",
-    value: 10,
-    short: "D",
-    tip: "Smallest silver coin, but worth 10 cents!",
-    sizeClass: "w-14 h-14 sm:w-16 sm:h-16",
-    textClass: "text-base sm:text-lg",
-    subClass: "text-[8px]",
-    gradient:
-      "from-zinc-200 via-white to-zinc-300 border-zinc-500 text-zinc-800",
+    tip: "Biggest silver coin with ridged edges. Worth 25 cents!",
+    sizeClass: "w-[82px] h-[82px] sm:w-[96px] sm:h-[96px]",
+    imageUrl: quarterImg,
+    //imageUrl:
+    //  "https://commons.wikimedia.org/wiki/Special:FilePath/2014_ATB_Quarter_Obv.png?width=240",
+    fallbackBg: "from-slate-200 to-slate-400 border-slate-600 text-slate-900",
   },
   nickel: {
     id: "nickel",
     name: "Nickel",
     value: 5,
     short: "N",
-    tip: "Medium silver coin. Worth 5 cents!",
-    sizeClass: "w-16 h-16 sm:w-20 sm:h-20",
-    textClass: "text-lg sm:text-xl",
-    subClass: "text-[9px]",
-    gradient:
-      "from-stone-200 via-stone-100 to-stone-300 border-stone-500 text-stone-800",
+    tip: "Medium silver coin with smooth edges. Worth 5 cents!",
+    sizeClass: "w-[72px] h-[72px] sm:w-[84px] sm:h-[84px]",
+    imageUrl: nickelImg,
+    //imageUrl:
+    //  "https://commons.wikimedia.org/wiki/Special:FilePath/Jefferson-Nickel-Unc-Obv.jpg?width=240",
+    cropZoom: true, // trims JPEG corners to the circular rim
+    fallbackBg: "from-stone-200 to-stone-400 border-stone-600 text-stone-900",
   },
   penny: {
     id: "penny",
     name: "Penny",
     value: 1,
     short: "P",
-    tip: "Brown copper coin. Worth 1 cent!",
-    sizeClass: "w-15 h-15 sm:w-[70px] sm:h-[70px]",
-    textClass: "text-base sm:text-lg",
-    subClass: "text-[9px]",
-    gradient:
-      "from-amber-600 via-orange-400 to-amber-700 border-amber-900 text-amber-950",
+    tip: "Copper-brown coin with smooth edges. Worth 1 cent!",
+    sizeClass: "w-[64px] h-[64px] sm:w-[76px] sm:h-[76px]",
+    imageUrl: pennyImg,
+    //imageUrl:
+    //  "https://commons.wikimedia.org/wiki/Special:FilePath/US_One_Cent_Obv.png?width=240",
+    fallbackBg: "from-amber-500 to-amber-700 border-amber-900 text-amber-950",
+  },
+  dime: {
+    id: "dime",
+    name: "Dime",
+    value: 10,
+    short: "D",
+    tip: "Smallest silver coin with ridged edges. Worth 10 cents!",
+    sizeClass: "w-[58px] h-[58px] sm:w-[70px] sm:h-[70px]",
+    //imageUrl:
+    //  "https://commons.wikimedia.org/wiki/Special:FilePath/Dime_Obverse_13.png?width=240",
+    imageUrl: dimeImg,
+    fallbackBg: "from-zinc-200 to-zinc-400 border-zinc-600 text-zinc-900",
   },
 };
-
 const MATH_RULES = {
   "+1": {
     id: "+1",
@@ -2084,6 +2088,37 @@ function InteractiveNumberLine({
   );
 }
 
+function USCoin({ type, className = "" }) {
+  const spec = COIN_SPECS[type] || COIN_SPECS.penny;
+  const [imgFailed, setImgFailed] = useState(false);
+
+  if (imgFailed) {
+    return (
+      <div
+        className={`${spec.sizeClass} rounded-full bg-gradient-to-br ${spec.fallbackBg} border-4 shadow-md flex flex-col items-center justify-center shrink-0 select-none ${className}`}
+      >
+        <span className="font-black text-base leading-none">{spec.value}¢</span>
+        <span className="font-bold text-[9px] uppercase mt-0.5">
+          {spec.name}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`${spec.sizeClass} rounded-full overflow-hidden drop-shadow-md shrink-0 select-none ${className}`}
+    >
+      <img
+        src={spec.imageUrl}
+        alt={`${spec.name} (${spec.value}¢)`}
+        onError={() => setImgFailed(true)}
+        draggable={false}
+        className={`w-full h-full object-cover ${spec.cropZoom ? "scale-[1.06]" : ""}`}
+      />
+    </div>
+  );
+}
 // ==========================================
 // 5B. INTERACTIVE COIN BOARD
 // ==========================================
@@ -2124,36 +2159,16 @@ function InteractiveCoinBoard({
 
           return (
             <div key={idx} className="flex flex-col items-center gap-1.5">
-              <div
-                className={`min-h-[26px] px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-black transition-all ${
-                  isCounted
-                    ? "bg-emerald-500 text-white shadow scale-105"
-                    : showHintPreview
-                      ? "bg-amber-200 text-amber-900"
-                      : "opacity-0"
-                }`}
-              >
-                {isCounted ? `${c.runningTotal}¢` : `+${c.value}¢`}
-              </div>
-
-              <div
-                className={`${spec.sizeClass} rounded-full bg-gradient-to-br ${spec.gradient} border-4 shadow-md flex flex-col items-center justify-center transition-transform duration-300 ${
+            <USCoin
+                type={c.type}
+                className={`transition-transform duration-300 ${
                   isCurrent
-                    ? "scale-115 ring-4 ring-emerald-400 -translate-y-1.5"
+                    ? "scale-110 ring-4 ring-emerald-400 -translate-y-1.5"
                     : isCounted
                       ? "ring-2 ring-emerald-400"
                       : ""
                 }`}
-              >
-                <span className={`font-black leading-none ${spec.textClass}`}>
-                  {c.value}¢
-                </span>
-                <span
-                  className={`font-extrabold uppercase tracking-wider opacity-80 mt-0.5 ${spec.subClass}`}
-                >
-                  {spec.name}
-                </span>
-              </div>
+              />
             </div>
           );
         })}
@@ -2573,20 +2588,7 @@ function InteractiveLessonView({
                   }}
                   className="bg-white border-4 border-amber-200 hover:border-amber-400 rounded-3xl p-5 flex flex-col items-center text-center shadow-sm cursor-pointer transition-transform active:scale-95"
                 >
-                  <div
-                    className={`${spec.sizeClass} rounded-full bg-gradient-to-br ${spec.gradient} border-4 shadow-md flex flex-col items-center justify-center mb-3`}
-                  >
-                    <span
-                      className={`font-black leading-none ${spec.textClass}`}
-                    >
-                      {spec.value}¢
-                    </span>
-                    <span
-                      className={`font-extrabold uppercase tracking-wider opacity-80 mt-0.5 ${spec.subClass}`}
-                    >
-                      {spec.name}
-                    </span>
-                  </div>
+                  <USCoin type={coinType} className="mb-3" />
                   <div className="font-black text-xl text-indigo-950">
                     {spec.name} = {spec.value}¢
                   </div>
@@ -2673,24 +2675,14 @@ function InteractiveLessonView({
                     >
                       {isTapped ? `${partialSum}¢` : `Tap +${spec.value}¢`}
                     </div>
-                    <div
-                      className={`${spec.sizeClass} rounded-full bg-gradient-to-br ${spec.gradient} border-4 shadow-md flex flex-col items-center justify-center transition-transform ${
+                    <USCoin
+                      type={type}
+                      className={`transition-transform ${
                         isTapped
                           ? "ring-4 ring-emerald-400 scale-105 opacity-95"
                           : "hover:scale-110 active:scale-95"
                       }`}
-                    >
-                      <span
-                        className={`font-black leading-none ${spec.textClass}`}
-                      >
-                        {spec.value}¢
-                      </span>
-                      <span
-                        className={`font-extrabold uppercase tracking-wider opacity-80 mt-0.5 ${spec.subClass}`}
-                      >
-                        {spec.name}
-                      </span>
-                    </div>
+                    />
                   </button>
                 );
               })}

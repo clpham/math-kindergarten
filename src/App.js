@@ -640,6 +640,7 @@ class SoundEngine {
     this.ctx = null;
     this.muted = false;
     this.currentAudio = null;
+    this.speechToken = 0;
   }
 
   init() {
@@ -738,14 +739,30 @@ class SoundEngine {
     });
   }
 
-  async speak(text) {
-    if (this.muted || typeof window === "undefined") return;
-
+  stop() {
+    this.speechToken += 1;
     if (this.currentAudio) {
-      await waitForAudio(this.currentAudio);
-      this.currentAudio.pause();
-      this.currentAudio.currentTime = 0;
+      const audio = this.currentAudio;
+      this.currentAudio = null;
+      audio.pause();
+      audio.currentTime = 0;
     }
+  }
+
+  async speak(text, { interrupt = false } = {}) {
+    if (this.muted || typeof window === "undefined" || !text) return;
+
+    if (interrupt) {
+      this.stop();
+    } else if (
+      this.currentAudio &&
+      !this.currentAudio.ended &&
+      !this.currentAudio.paused
+    ) {
+      await waitForAudio(this.currentAudio);
+    }
+
+    const token = ++this.speechToken;
 
     try {
       const response = await fetch(
@@ -777,31 +794,54 @@ class SoundEngine {
       }
 
       const audioBlob = await response.blob();
+      // Abort if another speech/stop call happened while fetching
+      if (this.speechToken !== token || this.muted) return;
+
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
-
       this.currentAudio = audio;
 
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        if (this.currentAudio === audio) {
-          this.currentAudio = null;
-        }
-      };
-
-      audio.play();
+      await new Promise((resolve) => {
+        const cleanup = () => {
+          audio.removeEventListener("ended", cleanup);
+          audio.removeEventListener("pause", cleanup);
+          audio.removeEventListener("error", cleanup);
+          URL.revokeObjectURL(audioUrl);
+          if (this.currentAudio === audio) {
+            this.currentAudio = null;
+          }
+          resolve();
+        };
+        audio.addEventListener("ended", cleanup, { once: true });
+        audio.addEventListener("pause", cleanup, { once: true });
+        audio.addEventListener("error", cleanup, { once: true });
+        audio.play().catch(cleanup);
+      });
     } catch (error) {
       console.error("Failed to fetch audio from Kokoro:", error);
     }
   }
 }
-const sound = new SoundEngine();
 
 function waitForAudio(audioElement) {
   return new Promise((resolve) => {
-    audioElement.addEventListener("ended", resolve, { once: true });
+    if (!audioElement || audioElement.ended || audioElement.paused) {
+      resolve();
+      return;
+    }
+    const done = () => {
+      audioElement.removeEventListener("ended", done);
+      audioElement.removeEventListener("pause", done);
+      audioElement.removeEventListener("error", done);
+      resolve();
+    };
+    audioElement.addEventListener("ended", done, { once: true });
+    audioElement.addEventListener("pause", done, { once: true });
+    audioElement.addEventListener("error", done, { once: true });
   });
 }
+
+const sound = new SoundEngine();
 
 // ==========================================
 // 4. QUESTION GENERATORS (NUMBER LINE, COINS, PLACE VALUE)
@@ -2325,11 +2365,70 @@ function InteractiveLessonView({
   const [step, setStep] = useState(0);
   const totalSteps = 3;
   const lessonTimersRef = useRef([]);
+  const countRunIdRef = useRef(0);
+  const lessonRunIdRef = useRef(0);
 
   const clearLessonTimers = () => {
+    lessonRunIdRef.current += 1;
     lessonTimersRef.current.forEach((t) => clearTimeout(t));
     lessonTimersRef.current = [];
+    sound.stop();
   };
+
+  const waitLessonDelay = (ms) =>
+    new Promise((resolve) => {
+      const t = setTimeout(resolve, ms);
+      lessonTimersRef.current.push(t);
+    });
+
+  const handleAutoCountCoins = async () => {
+    clearLessonTimers();
+    const runId = lessonRunIdRef.current;
+    setTappedCoinIndices([]);
+
+    let running = 0;
+    for (let idx = 0; idx < sandboxCoins.length; idx++) {
+      if (lessonRunIdRef.current !== runId) return;
+
+      const type = sandboxCoins[idx];
+      running += COIN_SPECS[type].value;
+      setTappedCoinIndices((prev) => [...prev, idx]);
+      sound.playHop(COIN_SPECS[type].value >= 10);
+
+      await sound.speak(`${running} cents`);
+      if (lessonRunIdRef.current !== runId) return;
+
+      await waitLessonDelay(sound.muted ? 700 : 250);
+    }
+  };
+
+  const handlePlayNumberLineDemo = async (qOverride = null) => {
+    const q = qOverride || demoQuestion;
+    if (!q) return;
+
+    clearLessonTimers();
+    const runId = lessonRunIdRef.current;
+    setDemoAnimStep(-1);
+
+    await waitLessonDelay(150);
+    if (lessonRunIdRef.current !== runId) return;
+
+    for (let idx = 0; idx < q.steps.length; idx++) {
+      if (lessonRunIdRef.current !== runId) return;
+
+      const s = q.steps[idx];
+      setDemoAnimStep(idx);
+      sound.playHop(Math.abs(s.to - s.from) >= 2);
+
+      if (s.voice) {
+        await sound.speak(s.voice);
+      }
+      if (lessonRunIdRef.current !== runId) return;
+
+      await waitLessonDelay(sound.muted ? 900 : 250);
+    }
+  };
+
 
   // Coin Sandbox State (Step 1)
   const sandboxCoins = useMemo(() => {
@@ -2412,37 +2511,6 @@ function InteractiveLessonView({
     );
     sound.playHop(COIN_SPECS[sandboxCoins[idx]].value >= 10);
     sound.speak(`${newTotal} cents`);
-  };
-
-  const handleAutoCountCoins = () => {
-    clearLessonTimers();
-    setTappedCoinIndices([]);
-    let running = 0;
-    sandboxCoins.forEach((type, idx) => {
-      const t = setTimeout(() => {
-        running += COIN_SPECS[type].value;
-        setTappedCoinIndices((prev) => [...prev, idx]);
-        sound.playHop(COIN_SPECS[type].value >= 10);
-        sound.speak(`${running} cents`);
-      }, idx * 1100 + 150);
-      lessonTimersRef.current.push(t);
-    });
-  };
-
-  const handlePlayNumberLineDemo = (qOverride = null) => {
-    const q = qOverride || demoQuestion;
-    if (!q) return;
-    clearLessonTimers();
-    setDemoAnimStep(-1);
-    const stepDuration = 2300;
-    q.steps.forEach((s, idx) => {
-      const t = setTimeout(() => {
-        setDemoAnimStep(idx);
-        sound.playHop(Math.abs(s.to - s.from) >= 2);
-        if (s.voice) sound.speak(s.voice);
-      }, idx * stepDuration + 150);
-      lessonTimersRef.current.push(t);
-    });
   };
 
   const builderNumber = builderH * 100 + builderT * 10 + builderO;
@@ -3408,10 +3476,20 @@ export default function App() {
   const [quizCompleted, setQuizCompleted] = useState(false);
 
   const animTimersRef = useRef([]);
+  const animRunIdRef = useRef(0);
+
   const clearAnimTimers = () => {
+    animRunIdRef.current += 1;
     animTimersRef.current.forEach((t) => clearTimeout(t));
     animTimersRef.current = [];
+    sound.stop();
   };
+
+  const waitAnimDelay = (ms) =>
+    new Promise((resolve) => {
+      const t = setTimeout(resolve, ms);
+      animTimersRef.current.push(t);
+    });
 
   // Hydration from PocketBase & Local Storage
   useEffect(() => {
@@ -3604,35 +3682,41 @@ export default function App() {
     sound.speak(nextQ.voicePrompt);
   };
 
-  const playStepAnimationSequence = (q, onComplete) => {
+  const playStepAnimationSequence = async (q, onComplete) => {
     clearAnimTimers();
+    const runId = animRunIdRef.current;
     setPracticeAnimStep(-1);
 
-    const stepDuration = q.rule.category === "COINS" ? 1600 : 2600;
+    await waitAnimDelay(150);
+    if (animRunIdRef.current !== runId) return;
 
-    q.steps.forEach((step, idx) => {
-      const t = setTimeout(
-        () => {
-          setPracticeAnimStep(idx);
-          const isBig =
-            step.from !== undefined && step.to !== undefined
-              ? Math.abs(step.to - step.from) >= 2
-              : false;
-          sound.playHop(isBig);
-          if (step.voice) sound.speak(step.voice);
-        },
-        idx * stepDuration + 150,
-      );
-      animTimersRef.current.push(t);
-    });
+    for (let idx = 0; idx < q.steps.length; idx++) {
+      if (animRunIdRef.current !== runId) return;
 
-    if (onComplete) {
-      const finalT = setTimeout(
-        onComplete,
-        q.steps.length * stepDuration + 400,
-      );
-      animTimersRef.current.push(finalT);
+      const step = q.steps[idx];
+      setPracticeAnimStep(idx);
+
+      const isBig =
+        step.from !== undefined && step.to !== undefined
+          ? Math.abs(step.to - step.from) >= 2
+          : false;
+      sound.playHop(isBig);
+
+      if (step.voice) {
+        await sound.speak(step.voice);
+      }
+      if (animRunIdRef.current !== runId) return;
+
+      const pauseMs = sound.muted
+        ? q.rule.category === "COINS"
+          ? 700
+          : 900
+        : 250;
+      await waitAnimDelay(pauseMs);
     }
+
+    if (animRunIdRef.current !== runId) return;
+    if (onComplete) onComplete();
   };
 
   const handlePracticeRuleSelect = (rk) => {

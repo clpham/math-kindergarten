@@ -286,7 +286,7 @@ const MATH_RULES = {
     val: 5,
     max: 200,
     label: "Count by 5s",
-    title: "Up to 200",
+    title: "Forward to 200",
     voiceRule: "Count up by fives!",
     color: "from-pink-400 to-rose-600",
     bgLight: "bg-pink-50",
@@ -298,15 +298,66 @@ const MATH_RULES = {
     op: "+",
     val: 10,
     max: 200,
-    label: "Count by 10s",
-    title: "Up to 200",
-    voiceRule: "Count up by tens!",
+    label: "10s Forward",
+    title: "Count up by 10s",
+    voiceRule: "Count forward by tens! Add ten each hop.",
     color: "from-violet-400 to-purple-600",
     bgLight: "bg-violet-50",
     border: "border-violet-400",
     text: "text-violet-800",
   },
+  COUNT10_BACK: {
+    id: "COUNT10_BACK",
+    op: "-",
+    val: 10,
+    max: 200,
+    label: "10s Backward",
+    title: "Count back by 10s",
+    voiceRule: "Count backward by tens! Subtract ten each hop.",
+    color: "from-fuchsia-500 to-purple-700",
+    bgLight: "bg-fuchsia-50",
+    border: "border-fuchsia-400",
+    text: "text-fuchsia-800",
+  },
+  SLIDE10_FWD: {
+    id: "SLIDE10_FWD",
+    op: "+",
+    val: 10,
+    max: 200,
+    sliding: true,
+    label: "Slide 10s (+)",
+    title: "Forward from Any #",
+    voiceRule:
+      "Sliding tens forward! Keep the ones digit the same and add ten.",
+    color: "from-sky-400 to-indigo-600",
+    bgLight: "bg-sky-50",
+    border: "border-sky-400",
+    text: "text-sky-800",
+  },
+  SLIDE10_BACK: {
+    id: "SLIDE10_BACK",
+    op: "-",
+    val: 10,
+    max: 200,
+    sliding: true,
+    label: "Slide 10s (-)",
+    title: "Back from Any #",
+    voiceRule:
+      "Sliding tens backward! Keep the ones digit the same and subtract ten.",
+    color: "from-amber-500 to-orange-600",
+    bgLight: "bg-amber-50",
+    border: "border-amber-400",
+    text: "text-amber-800",
+  },
 };
+
+const SKIP_COUNT_RULES = [
+  "COUNT5",
+  "COUNT10",
+  "COUNT10_BACK",
+  "SLIDE10_FWD",
+  "SLIDE10_BACK",
+];
 
 const AVATARS = [
   {
@@ -575,17 +626,38 @@ function generateMathQuestion(
   let generatedKey = "";
 
   do {
-    if (
-      customStart !== null &&
-      (rule.id === "COUNT5" || rule.id === "COUNT10")
-    ) {
-      startNum = customStart;
-      answer = startNum + rule.val;
+    if (customStart !== null && rule.max) {
+      if (rule.op === "-") {
+        startNum = Math.max(rule.val, customStart);
+        answer = startNum - rule.val;
+      } else {
+        startNum = Math.max(0, customStart);
+        answer = startNum + rule.val;
+      }
     } else if (rule.max === 200) {
-      const maxMultiplier = rule.max / rule.val - 1;
-      const multiplier = Math.floor(Math.random() * maxMultiplier) + 1;
-      startNum = multiplier * rule.val;
-      answer = startNum + rule.val;
+      if (rule.sliding) {
+        // Pick an off-decade ones digit (1..9) for sliding 10 counts
+        const ones = Math.floor(Math.random() * 9) + 1;
+        if (rule.op === "+") {
+          const tens = Math.floor(Math.random() * 19); // 0..18 -> 1..189
+          startNum = tens * 10 + ones;
+          answer = startNum + rule.val;
+        } else {
+          const tens = Math.floor(Math.random() * 19) + 1; // 1..19 -> 11..199
+          startNum = tens * 10 + ones;
+          answer = startNum - rule.val;
+        }
+      } else if (rule.op === "+") {
+        const maxMultiplier = rule.max / rule.val - 1;
+        const multiplier = Math.floor(Math.random() * maxMultiplier) + 1;
+        startNum = multiplier * rule.val;
+        answer = startNum + rule.val;
+      } else {
+        const maxMultiplier = rule.max / rule.val;
+        const multiplier = Math.floor(Math.random() * maxMultiplier) + 1; // 1..20 -> 10..200
+        startNum = multiplier * rule.val;
+        answer = startNum - rule.val;
+      }
     } else {
       let maxOpHop = rule.val;
       if (["+8", "+9", "+10"].includes(rule.id)) maxOpHop = 10;
@@ -911,30 +983,45 @@ function generateMathQuestion(
       break;
     case "COUNT5":
     case "COUNT10":
+    case "SLIDE10_FWD":
       steps = [
         {
           from: s,
           to: answer,
           skipped: null,
           label: `+${rule.val}!`,
-          voice: `And ${rule.val} more makes ${answer}!`,
+          voice: `${s} plus ${rule.val} makes ${answer}!`,
+        },
+      ];
+      break;
+    case "COUNT10_BACK":
+    case "SLIDE10_BACK":
+      steps = [
+        {
+          from: s,
+          to: answer,
+          skipped: null,
+          label: `-${rule.val}!`,
+          voice: `${s} minus ${rule.val} makes ${answer}!`,
         },
       ];
       break;
   }
 
   const optionsSet = new Set([answer]);
-  while (optionsSet.size < 4) {
+  let optionAttempts = 0;
+  while (optionsSet.size < 4 && optionAttempts < 100) {
+    optionAttempts++;
     if (rule.max === 200) {
-      if (customStart !== null) {
-        // Create distractors relative to the custom answer
-        const offset = (Math.floor(Math.random() * 5) - 2) * rule.val;
-        const rand = answer + offset;
-        if (rand >= 0 && rand !== answer) optionsSet.add(rand);
-      } else {
-        const rand =
-          (Math.floor(Math.random() * (rule.max / rule.val)) + 1) * rule.val;
-        if (rand <= rule.max) optionsSet.add(rand);
+      // Keep distractors close to the answer (and same ones digit for sliding counts)
+      const offsetSteps = [-3, -2, -1, 1, 2, 3, 4];
+      const stepChoice =
+        offsetSteps[Math.floor(Math.random() * offsetSteps.length)];
+      const rand = answer + stepChoice * rule.val;
+      if (rand >= 0 && rand !== answer && rand !== startNum) {
+        optionsSet.add(rand);
+      } else if (optionAttempts > 50 && rand >= 0 && rand !== answer) {
+        optionsSet.add(rand);
       }
     } else {
       const rand = Math.floor(Math.random() * 31);
@@ -962,6 +1049,8 @@ const calculateQuizReward = (quizCategory, correctAnswers) => {
 
   if (["ALL", "ADD", "SUB"].includes(quizCategory)) {
     multiplier = 12;
+  } else if (MATH_RULES[quizCategory]) {
+    multiplier = MATH_RULES[quizCategory].val;
   } else {
     const parsedValue = parseInt(quizCategory, 10);
     if (!isNaN(parsedValue)) {
@@ -996,8 +1085,9 @@ function InteractiveNumberLine({
 
   // Stretch the axis if the user's custom number exceeds the default max
   let maxAxis = rule.max || 30;
-  if (rule.max && answer > maxAxis) {
-    maxAxis = Math.ceil(answer / rule.val) * rule.val + rule.val * 2;
+  const highestNum = Math.max(startNum, answer);
+  if (rule.max && highestNum > maxAxis) {
+    maxAxis = Math.ceil(highestNum / rule.val) * rule.val + rule.val * 2;
   }
   const getX = (num) => 30 + (num / maxAxis) * 1740;
 
@@ -1011,7 +1101,6 @@ function InteractiveNumberLine({
   useEffect(() => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
-      //const xPos = 30 + (currentMascotNum / 30) * 1740;
       const xPos = getX(currentMascotNum);
       const fraction = xPos / 1800;
       const scrollTarget =
@@ -1025,12 +1114,14 @@ function InteractiveNumberLine({
   }, [currentMascotNum]);
 
   const axisStep = rule.max ? rule.val : 1;
-  const numbersCount = Math.floor(maxAxis / axisStep) + 1;
-  const numbers = Array.from({ length: numbersCount }, (_, i) => i * axisStep);
-  //
-  // Ensure non-standard custom starts (e.g., 17 for +5) render as lily pads
-  if (rule.max && !numbers.includes(startNum)) numbers.push(startNum);
-  if (rule.max && !numbers.includes(answer)) numbers.push(answer);
+  // Align lily pads to the ones-digit offset for sliding counts / custom starts
+  const axisOffset = rule.max ? startNum % axisStep : 0;
+  const numbers = [];
+  for (let n = axisOffset; n <= maxAxis; n += axisStep) {
+    numbers.push(n);
+  }
+  if (!numbers.includes(startNum)) numbers.push(startNum);
+  if (!numbers.includes(answer)) numbers.push(answer);
   numbers.sort((a, b) => a - b);
 
   const visibleSteps = useMemo(() => {
@@ -1385,22 +1476,18 @@ export default function App() {
   const updateActiveStudentState = async (updaterFn) => {
     if (!activeStudentId) return;
 
-    // 1. Retrieve the current student directly from the component's state
     const currentStudent = students.find((s) => s.id === activeStudentId);
     if (!currentStudent) return;
 
-    // 2. Calculate the new values (stars, ruleMastery, quizHistory, stickers)
     const updates = updaterFn(currentStudent);
     if ("stars" in updates) updates.stars = Number(updates.stars);
 
-    // 3. Optimistically update the React UI immediately
     setStudents((prevStudents) =>
       prevStudents.map((s) =>
         s.id === activeStudentId ? { ...s, ...updates } : s,
       ),
     );
 
-    // 4. Send only the updated fields to PocketBase
     try {
       await pb.collection("students").update(activeStudentId, updates);
     } catch (e) {
@@ -1496,7 +1583,6 @@ export default function App() {
     customStart = null,
   ) => {
     clearAnimTimers();
-    // Wrap the previous key in an array to match the new usedKeys parameter
     const nextQ = generateMathQuestion(
       ruleKeyOverride,
       practiceQuestion?.key ? [practiceQuestion.key] : [],
@@ -1518,7 +1604,6 @@ export default function App() {
     clearAnimTimers();
     setPracticeAnimStep(-1);
 
-    // Increased the base delay from 1250ms to 2800ms to accommodate network TTS
     const stepDuration = 2800;
 
     q.steps.forEach((step, idx) => {
@@ -1649,7 +1734,6 @@ export default function App() {
     } else if (scope === "SUB") {
       pool = subRules;
     } else if (scope === "ALL") {
-      // Shuffle both arrays, slice 5 from each, and combine for a 50/50 split
       const randomAdd = [...addRules]
         .sort(() => Math.random() - 0.5)
         .slice(0, 5);
@@ -1662,16 +1746,14 @@ export default function App() {
     }
 
     const generated = [];
-    const usedKeys = []; // Array to track all questions in the current quiz
+    const usedKeys = [];
 
     for (let i = 0; i < QUIZ_TOTAL_QUESTIONS; i++) {
-      // Since 'pool' is either length 10 or 1, i % pool.length distributes perfectly
       const q = generateMathQuestion(pool[i % pool.length], usedKeys);
       usedKeys.push(q.key);
       generated.push(q);
     }
 
-    // Shuffle the final 10 questions so the 5 ADD and 5 SUB questions are mixed randomly
     generated.sort(() => Math.random() - 0.5);
 
     setQuizQuestions(generated);
@@ -1709,7 +1791,7 @@ export default function App() {
       ...quizAnswers,
       {
         questionKey: currentQ.key,
-        equation: `${currentQ.startNum} ${currentQ.rule.id} = ${currentQ.answer}`,
+        equation: `${currentQ.startNum} ${currentQ.rule.op}${currentQ.rule.val} = ${currentQ.answer}`,
         ruleId: currentQ.rule.id,
         chosen: chosenNum,
         correctAnswer: currentQ.answer,
@@ -1730,7 +1812,6 @@ export default function App() {
           const totalScore = newAnswers.filter((a) => a.isCorrect).length;
           const isPerfect = totalScore === quizQuestions.length;
 
-          // Apply new proportional algorithm
           const starsReward = calculateQuizReward(quizRuleScope, totalScore);
 
           sound.playSuccess();
@@ -1754,11 +1835,16 @@ export default function App() {
               };
             });
 
+            const scopeLabel =
+              quizRuleScope === "ALL"
+                ? "Mixed"
+                : MATH_RULES[quizRuleScope]?.label || quizRuleScope;
+
             const newRecord = {
               id: `qz_${Date.now()}`,
               date: new Date().toLocaleDateString(),
               timestamp: Date.now(),
-              scope: quizRuleScope === "ALL" ? "Mixed" : quizRuleScope,
+              scope: scopeLabel,
               score: totalScore,
               total: quizQuestions.length,
               starsEarned: starsReward,
@@ -2052,53 +2138,54 @@ export default function App() {
         </div>
 
         <div>
+          <h3 className="text-xl font-black text-indigo-950 mb-3 bg-pink-100 inline-block px-3 py-1 rounded-lg border-2 border-pink-300">
+            Skip & Sliding Counts (Up to 200) 🦘
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {SKIP_COUNT_RULES.map((rk) => {
+              const rule = MATH_RULES[rk];
+              return (
+                <div
+                  key={rk}
+                  className={`${rule.bgLight} border-2 ${rule.border} rounded-2xl p-3 flex flex-col justify-between`}
+                >
+                  <div className="flex justify-between items-start">
+                    <span
+                      className={`bg-gradient-to-br ${rule.color} text-white font-black text-base px-2 py-1 rounded-lg`}
+                    >
+                      {rule.label}
+                    </span>
+                  </div>
+                  <h4 className={`font-black text-sm mt-2 ${rule.text}`}>
+                    {rule.title}
+                  </h4>
+                  <div className="flex gap-1 mt-3">
+                    <button
+                      onClick={() => {
+                        handlePracticeRuleSelect(rk);
+                        setCurrentView("PRACTICE");
+                      }}
+                      className="flex-1 bg-white text-indigo-900 border-2 border-indigo-200 py-1 rounded-lg font-black text-xs"
+                    >
+                      Practice
+                    </button>
+                    <button
+                      onClick={() => startNewQuiz(rk)}
+                      className={`flex-1 bg-gradient-to-r ${rule.color} text-white py-1 rounded-lg font-black text-xs`}
+                    >
+                      Quiz
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
           <h3 className="text-xl font-black text-indigo-950 mb-3 bg-purple-100 inline-block px-3 py-1 rounded-lg border-2 border-purple-300">
             Challenge Quizzes 🏆
           </h3>
-          <div>
-            <h3 className="text-xl font-black text-indigo-950 mb-3 bg-pink-100 inline-block px-3 py-1 rounded-lg">
-              Skip Counting (Up to 200) 🦘
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {["COUNT5", "COUNT10"].map((rk) => {
-                const rule = MATH_RULES[rk];
-                return (
-                  <div
-                    key={rk}
-                    className={`${rule.bgLight} border-2 ${rule.border} rounded-2xl p-3 flex flex-col justify-between`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <span
-                        className={`bg-gradient-to-br ${rule.color} text-white font-black text-lg px-2 py-1 rounded-lg`}
-                      >
-                        {rule.label}
-                      </span>
-                    </div>
-                    <h4 className={`font-black text-sm mt-2 ${rule.text}`}>
-                      {rule.title}
-                    </h4>
-                    <div className="flex gap-1 mt-3">
-                      <button
-                        onClick={() => {
-                          handlePracticeRuleSelect(rk);
-                          setCurrentView("PRACTICE");
-                        }}
-                        className="flex-1 bg-white text-pink-800 border-2 border-pink-300 py-1 rounded-lg font-black text-xs"
-                      >
-                        Practice
-                      </button>
-                      <button
-                        onClick={() => startNewQuiz(rk)}
-                        className="flex-1 bg-pink-500 text-white border-2 border-pink-600 py-1 rounded-lg font-black text-xs"
-                      >
-                        Quiz
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-4 flex flex-col justify-between text-white shadow-md border-4 border-indigo-400">
               <div>
@@ -2246,7 +2333,7 @@ export default function App() {
 
   const renderPracticeView = () => {
     const { startNum, rule, answer, options } = practiceQuestion;
-    const isCustomizableRule = rule.id === "COUNT5" || rule.id === "COUNT10";
+    const isCustomizableRule = Boolean(rule.max);
     return (
       <div className="max-w-4xl mx-auto px-2 py-4 space-y-3">
         <div
@@ -2270,7 +2357,8 @@ export default function App() {
                 rule.op === "+" ? "text-emerald-600" : "text-orange-500"
               }
             >
-              {rule.id}
+              {rule.op}
+              {rule.val}
             </span>{" "}
             ={" "}
             <span className="text-slate-400">
@@ -2280,12 +2368,13 @@ export default function App() {
         </div>
 
         {isCustomizableRule && (
-          <div className="bg-white p-3 rounded-2xl border-2 border-pink-300 shadow-sm flex items-center gap-3">
+          <div className="bg-white p-3 rounded-2xl border-2 border-pink-300 shadow-sm flex flex-wrap items-center gap-3">
             <span className="font-bold text-pink-900 text-sm sm:text-base">
               Custom Start Number:
             </span>
             <input
               type="number"
+              min={rule.op === "-" ? rule.val : 0}
               value={practiceCustomStart}
               onChange={(e) => setPracticeCustomStart(e.target.value)}
               className="w-24 p-2 border-2 border-pink-200 rounded-xl font-black text-center text-indigo-950 outline-none focus:border-pink-500"
@@ -2294,13 +2383,23 @@ export default function App() {
             <button
               onClick={() => {
                 const val = parseInt(practiceCustomStart, 10);
-                if (!isNaN(val) && val >= 0)
+                const minAllowed = rule.op === "-" ? rule.val : 0;
+                if (!isNaN(val) && val >= minAllowed) {
                   loadNewPracticeQuestion(rule.id, val);
+                }
               }}
               className="bg-pink-500 hover:bg-pink-600 text-white font-black px-4 py-2 rounded-xl transition-colors"
             >
               Start Hops
             </button>
+            {rule.sliding && (
+              <button
+                onClick={() => loadNewPracticeQuestion(rule.id, null)}
+                className="bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-black px-3 py-2 rounded-xl text-sm transition-colors"
+              >
+                New Random Start
+              </button>
+            )}
           </div>
         )}
 
@@ -2329,12 +2428,16 @@ export default function App() {
               <button
                 onClick={() => {
                   const currentRule = practiceQuestion.rule.id;
-                  if (currentRule === "COUNT5" || currentRule === "COUNT10") {
-                    // Chain the previous answer as the new starting number
-                    loadNewPracticeQuestion(
-                      currentRule,
-                      practiceQuestion.answer,
-                    );
+                  if (practiceQuestion.rule.max) {
+                    const nextStart = practiceQuestion.answer;
+                    if (
+                      practiceQuestion.rule.op === "-" &&
+                      nextStart < practiceQuestion.rule.val
+                    ) {
+                      loadNewPracticeQuestion(currentRule, null);
+                    } else {
+                      loadNewPracticeQuestion(currentRule, nextStart);
+                    }
                   } else {
                     loadNewPracticeQuestion();
                   }
@@ -2365,7 +2468,6 @@ export default function App() {
       const score = quizAnswers.filter((a) => a.isCorrect).length;
       const isPerfect = score === quizQuestions.length;
 
-      // Calculate display reward using the new algorithm
       const reward = calculateQuizReward(quizRuleScope, score);
 
       return (
@@ -2421,10 +2523,9 @@ export default function App() {
                   ? "➕ All Addition"
                   : quizRuleScope === "SUB"
                     ? "➖ All Subtraction"
-                    : `🎯 Rule: ${quizRuleScope}`}
+                    : `🎯 Rule: ${MATH_RULES[quizRuleScope]?.label || quizRuleScope}`}
             </span>
           </div>
-          {/* Replaced Q index text with solid circle indicators */}
           <div className="flex items-center gap-1 sm:gap-1.5 bg-indigo-50/80 px-3 py-2 rounded-xl border-2 border-indigo-100 flex-wrap justify-end">
             {quizQuestions.map((_, i) => {
               if (i < quizAnswers.length) {
@@ -2456,7 +2557,8 @@ export default function App() {
               currentQ.rule.op === "+" ? "text-emerald-600" : "text-orange-600"
             }
           >
-            {currentQ.rule.id}
+            {currentQ.rule.op}
+            {currentQ.rule.val}
           </span>{" "}
           = {isAnswered ? currentQ.answer : "?"}
         </div>
@@ -2542,9 +2644,11 @@ export default function App() {
                       return (
                         <div
                           key={rk}
-                          className={`border rounded-xl p-2 flex flex-col items-center justify-center ${colorClass}`}
+                          className={`border rounded-xl p-2 flex flex-col items-center justify-center text-center ${colorClass}`}
                         >
-                          <div className="font-black text-lg">{rk}</div>
+                          <div className="font-black text-base">
+                            {MATH_RULES[rk]?.label || rk}
+                          </div>
                           <div className="text-xs font-bold">{pct}%</div>
                           <div className="text-[10px] opacity-70">
                             ({stats.correct}/{stats.attempts})

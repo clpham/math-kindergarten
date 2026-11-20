@@ -710,8 +710,7 @@ const HOME_TABS = [
     subtitle: "Hop by 5s and 10s forward, backward, and from any number",
     activeClass:
       "bg-pink-500 text-white border-pink-700 shadow-md scale-[1.02]",
-    inactiveClass:
-      "bg-pink-50 text-pink-900 border-pink-200 hover:bg-pink-100",
+    inactiveClass: "bg-pink-50 text-pink-900 border-pink-200 hover:bg-pink-100",
     panelBorder: "border-pink-300",
     panelHeader: "bg-pink-50 border-pink-200",
     rules: SKIP_COUNT_RULES,
@@ -723,10 +722,8 @@ const HOME_TABS = [
     icon: "🔢",
     title: "1, 2 & 3-Digit Numbers",
     subtitle: "Explore Ones, Tens, and Hundreds digit positions",
-    activeClass:
-      "bg-sky-500 text-white border-sky-700 shadow-md scale-[1.02]",
-    inactiveClass:
-      "bg-sky-50 text-sky-900 border-sky-200 hover:bg-sky-100",
+    activeClass: "bg-sky-500 text-white border-sky-700 shadow-md scale-[1.02]",
+    inactiveClass: "bg-sky-50 text-sky-900 border-sky-200 hover:bg-sky-100",
     panelBorder: "border-sky-300",
     panelHeader: "bg-sky-50 border-sky-200",
     rules: PLACE_VALUE_RULES,
@@ -755,8 +752,7 @@ const HOME_TABS = [
     subtitle: "Move the hour and minute hands to read and set the clock",
     activeClass:
       "bg-rose-500 text-white border-rose-700 shadow-md scale-[1.02]",
-    inactiveClass:
-      "bg-rose-50 text-rose-900 border-rose-200 hover:bg-rose-100",
+    inactiveClass: "bg-rose-50 text-rose-900 border-rose-200 hover:bg-rose-100",
     panelBorder: "border-rose-300",
     panelHeader: "bg-rose-50 border-rose-200",
     rules: CLOCK_RULES,
@@ -1106,7 +1102,8 @@ function generateCoinQuestion(rule, usedKeys = []) {
   const steps = coinItems.map((c, idx) => ({
     coinIndex: idx,
     runningTotal: c.runningTotal,
-    label: idx === 0 ? `${c.runningTotal}¢` : `+${c.value}¢ → ${c.runningTotal}¢`,
+    label:
+      idx === 0 ? `${c.runningTotal}¢` : `+${c.value}¢ → ${c.runningTotal}¢`,
     voice:
       idx === 0
         ? `${c.runningTotal} cents`
@@ -1366,7 +1363,11 @@ function generatePlaceValueQuestion(rule, usedKeys = []) {
 
     optionsSet.add(answer);
     [targetDigit, targetDigit * 10, targetDigit * 100].forEach((v) => {
-      if (v !== answer && optionsSet.size < 4 && (digitCount === 3 || v < 100)) {
+      if (
+        v !== answer &&
+        optionsSet.size < 4 &&
+        (digitCount === 3 || v < 100)
+      ) {
         optionsSet.add(v);
       }
     });
@@ -2473,7 +2474,7 @@ function InteractiveCoinBoard({
 
           return (
             <div key={idx} className="flex flex-col items-center gap-1.5">
-            <USCoin
+              <USCoin
                 type={c.type}
                 className={`transition-transform duration-300 ${
                   isCurrent
@@ -2631,8 +2632,7 @@ function InteractivePlaceValueBoard({
         }`}
       >
         {columns.map((col) => {
-          const isLit =
-            activeHighlight === col.id || activeHighlight === "all";
+          const isLit = activeHighlight === col.id || activeHighlight === "all";
           const showDigitInCol =
             col.active &&
             (showNumberDigits ||
@@ -3153,7 +3153,6 @@ function InteractiveLessonView({
     }
   };
 
-
   // Coin Sandbox State (Step 1)
   const sandboxCoins = useMemo(() => {
     if (rule.category !== "COINS") return [];
@@ -3204,11 +3203,7 @@ function InteractiveLessonView({
     if (rule.category === "CLOCK") {
       setSandboxHour(3);
       setSandboxMinute(
-        rule.clockMode === "half"
-          ? 30
-          : rule.clockMode === "quarter"
-            ? 15
-            : 0,
+        rule.clockMode === "half" ? 30 : rule.clockMode === "quarter" ? 15 : 0,
       );
     }
 
@@ -3983,16 +3978,19 @@ function InteractiveLessonView({
         patternTip = "Notice the ones digit repeats: 5, 0, 5, 0!";
       } else if (rule.id === "COUNT10") {
         patternNumbers = [10, 20, 30, 40, 50, 60];
-        patternTip = "The tens digit goes up by 1 each hop, and the ones digit stays 0!";
+        patternTip =
+          "The tens digit goes up by 1 each hop, and the ones digit stays 0!";
       } else if (rule.id === "COUNT10_BACK") {
         patternNumbers = [60, 50, 40, 30, 20, 10];
         patternTip = "The tens digit goes down by 1 each hop!";
       } else if (rule.id === "SLIDE10_FWD") {
         patternNumbers = [14, 24, 34, 44, 54];
-        patternTip = "The ones digit (4) stays the same — only the tens digit goes up by 1!";
+        patternTip =
+          "The ones digit (4) stays the same — only the tens digit goes up by 1!";
       } else if (rule.id === "SLIDE10_BACK") {
         patternNumbers = [57, 47, 37, 27, 17];
-        patternTip = "The ones digit (7) stays the same — only the tens digit goes down by 1!";
+        patternTip =
+          "The ones digit (7) stays the same — only the tens digit goes down by 1!";
       }
 
       const sampleQ = demoQuestion || workedExamples[0];
@@ -4045,7 +4043,9 @@ function InteractiveLessonView({
                         <span className="text-indigo-950">{tensPart}</span>
                         <span
                           className={
-                            rule.sliding ? "text-rose-600 underline" : "text-indigo-950"
+                            rule.sliding
+                              ? "text-rose-600 underline"
+                              : "text-indigo-950"
                           }
                         >
                           {onesPart}
@@ -4103,8 +4103,7 @@ function InteractiveLessonView({
 
     if (step === 1 && demoQuestion) {
       const canChain =
-        isSkipOrSlide &&
-        !(rule.op === "-" && demoQuestion.answer < rule.val);
+        isSkipOrSlide && !(rule.op === "-" && demoQuestion.answer < rule.val);
 
       return (
         <div className="space-y-4">
@@ -5357,8 +5356,13 @@ export default function App() {
   };
 
   const renderPracticeView = () => {
-    const { startNum, rule, answer, options, answerUnit = "" } =
-      practiceQuestion;
+    const {
+      startNum,
+      rule,
+      answer,
+      options,
+      answerUnit = "",
+    } = practiceQuestion;
     const isCustomizableRule = Boolean(rule.max);
     const isCoins = rule.category === "COINS";
     const isPlaceValue = rule.category === "PLACE_VALUE";
@@ -5501,7 +5505,7 @@ export default function App() {
           />
         )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-1">
           <button
             onClick={handleDemonstrateRule}
             className="sm:col-span-4 bg-amber-100 py-2 rounded-2xl border-2 border-amber-400 text-amber-900 font-bold flex justify-center items-center gap-2"
@@ -5727,7 +5731,9 @@ export default function App() {
             {currentQ.startNum}{" "}
             <span
               className={
-                currentQ.rule.op === "+" ? "text-emerald-600" : "text-orange-600"
+                currentQ.rule.op === "+"
+                  ? "text-emerald-600"
+                  : "text-orange-600"
               }
             >
               {currentQ.rule.op}

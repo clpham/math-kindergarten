@@ -610,6 +610,22 @@ const MATH_RULES = {
     border: "border-teal-400",
     text: "text-teal-900",
   },
+  CLOCK_ONE: {
+    id: "CLOCK_ONE",
+    category: "CLOCK",
+    clockMode: "one",
+    minuteSnap: 1,
+    op: "+",
+    val: 10,
+    label: "By 1 Minute",
+    title: "To the Exact Minute",
+    voiceRule:
+      "Count by fives to the big number, then count each tiny tick mark by ones!",
+    color: "from-amber-500 to-orange-600",
+    bgLight: "bg-amber-50",
+    border: "border-amber-400",
+    text: "text-amber-900",
+  },
 };
 
 const SKIP_COUNT_RULES = [
@@ -630,7 +646,13 @@ const COIN_RULES = [
 
 const PLACE_VALUE_RULES = ["PV_1DIGIT", "PV_2DIGIT", "PV_3DIGIT", "PV_MIXED"];
 
-const CLOCK_RULES = ["CLOCK_HOUR", "CLOCK_HALF", "CLOCK_QUARTER", "CLOCK_FIVE"];
+const CLOCK_RULES = [
+  "CLOCK_HOUR",
+  "CLOCK_HALF",
+  "CLOCK_QUARTER",
+  "CLOCK_FIVE",
+  "CLOCK_ONE",
+];
 
 const ADDITION_RULES = [
   "+1",
@@ -756,7 +778,7 @@ const HOME_TABS = [
     panelBorder: "border-rose-300",
     panelHeader: "bg-rose-50 border-rose-200",
     rules: CLOCK_RULES,
-    gridClass: "grid-cols-2 md:grid-cols-4",
+    gridClass: "grid-cols-2 md:grid-cols-5",
   },
 ];
 
@@ -1451,7 +1473,9 @@ function generateClockQuestion(rule, usedKeys = [], forceMode = null) {
         ? [0, 30]
         : rule.clockMode === "quarter"
           ? [0, 15, 30, 45]
-          : [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+          : rule.clockMode === "five"
+            ? [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
+            : Array.from({ length: 60 }, (_, i) => i);
 
   do {
     hour = Math.floor(Math.random() * 12) + 1;
@@ -1473,15 +1497,45 @@ function generateClockQuestion(rule, usedKeys = [], forceMode = null) {
   while (optionsSet.size < 4 && optAttempts < 100) {
     optAttempts++;
     const candH =
-      Math.random() < 0.6
-        ? ((hour + (Math.random() < 0.5 ? 1 : -1) - 1 + 12) % 12) + 1
-        : Math.floor(Math.random() * 12) + 1;
-    const candM =
-      allowedMinutes[Math.floor(Math.random() * allowedMinutes.length)];
+      rule.clockMode === "one" && Math.random() < 0.75
+        ? hour
+        : Math.random() < 0.6
+          ? ((hour + (Math.random() < 0.5 ? 1 : -1) - 1 + 12) % 12) + 1
+          : Math.floor(Math.random() * 12) + 1;
+
+    let candM;
+    if (rule.clockMode === "one") {
+      const deltas = [-10, -5, -2, -1, 1, 2, 5, 10];
+      const delta = deltas[Math.floor(Math.random() * deltas.length)];
+      candM = (minute + delta + 60) % 60;
+    } else {
+      candM =
+        allowedMinutes[Math.floor(Math.random() * allowedMinutes.length)];
+    }
     optionsSet.add(formatClockTime(candH, candM));
   }
 
-  const minuteMark = minute === 0 ? 12 : minute / 5;
+  const padMin = String(minute).padStart(2, "0");
+  const prevFive = Math.floor(minute / 5);
+  const prevMark = prevFive === 0 ? 12 : prevFive;
+  const extraTicks = minute % 5;
+
+  let minuteStepLabel;
+  let minuteStepVoice;
+  if (minute === 0) {
+    minuteStepLabel = `Blue Minute hand → 12 (:00) = ${answer}`;
+    minuteStepVoice = `The long blue minute hand points to 12 for o'clock! That is ${spoken}!`;
+  } else if (extraTicks === 0) {
+    minuteStepLabel = `Blue Minute hand → ${prevMark} (:${padMin}) = ${answer}`;
+    minuteStepVoice = `The long blue minute hand points to ${prevMark}, which is ${minute} minutes! That is ${spoken}!`;
+  } else if (prevFive === 0) {
+    minuteStepLabel = `Blue Minute hand → ${extraTicks} past 12 (:${padMin}) = ${answer}`;
+    minuteStepVoice = `Start at 12 and count ${extraTicks} ${extraTicks === 1 ? "minute" : "minutes"}! That is ${spoken}!`;
+  } else {
+    minuteStepLabel = `Blue Minute hand → ${prevFive * 5} + ${extraTicks} (:${padMin}) = ${answer}`;
+    minuteStepVoice = `Count to ${prevFive * 5} at the ${prevMark}, then ${extraTicks} more ${extraTicks === 1 ? "minute" : "minutes"} makes ${minute}! That is ${spoken}!`;
+  }
+
   const steps = [
     {
       phase: "hour",
@@ -1494,14 +1548,8 @@ function generateClockQuestion(rule, usedKeys = [], forceMode = null) {
       phase: "minute",
       hour,
       minute,
-      label:
-        minute === 0
-          ? `Blue Minute hand → 12 (:00) = ${answer}`
-          : `Blue Minute hand → ${minuteMark} (:${String(minute).padStart(2, "0")}) = ${answer}`,
-      voice:
-        minute === 0
-          ? `The long blue minute hand points to 12 for o'clock! That is ${spoken}!`
-          : `The long blue minute hand points to ${minuteMark}, which is ${minute} minutes! That is ${spoken}!`,
+      label: minuteStepLabel,
+      voice: minuteStepVoice,
     },
   ];
 
@@ -3025,6 +3073,7 @@ function InteractiveClockBoard({
           showMinuteLabels={
             showHintPreview ||
             question.rule.clockMode === "five" ||
+            question.rule.clockMode === "one" ||
             animStepIndex >= 0
           }
           highlightHand={activeStep?.phase || null}
@@ -3057,6 +3106,36 @@ function InteractiveClockBoard({
                   {formatClockTime(userTime.hour, userTime.minute)}
                 </span>
               </div>
+              {clock.minuteSnap === 1 && !isAnsweredCorrectly && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playPop();
+                      const total =
+                        (userTime.hour % 12) * 60 + userTime.minute - 1;
+                      const norm = ((total % 720) + 720) % 720;
+                      onUserTimeChange(Math.floor(norm / 60) || 12, norm % 60);
+                    }}
+                    className="bg-sky-100 hover:bg-sky-200 text-sky-900 border-2 border-sky-300 px-3 py-1 rounded-xl font-black text-xs active:scale-95"
+                  >
+                    -1 Min
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playPop();
+                      const total =
+                        (userTime.hour % 12) * 60 + userTime.minute + 1;
+                      const norm = ((total % 720) + 720) % 720;
+                      onUserTimeChange(Math.floor(norm / 60) || 12, norm % 60);
+                    }}
+                    className="bg-sky-100 hover:bg-sky-200 text-sky-900 border-2 border-sky-300 px-3 py-1 rounded-xl font-black text-xs active:scale-95"
+                  >
+                    +1 Min
+                  </button>
+                </div>
+              )}
             </>
           ) : (
             <div className="bg-white border-2 border-indigo-200 rounded-2xl p-4 text-center space-y-1.5 max-w-[200px]">
@@ -3203,7 +3282,13 @@ function InteractiveLessonView({
     if (rule.category === "CLOCK") {
       setSandboxHour(3);
       setSandboxMinute(
-        rule.clockMode === "half" ? 30 : rule.clockMode === "quarter" ? 15 : 0,
+        rule.clockMode === "half"
+          ? 30
+          : rule.clockMode === "quarter"
+            ? 15
+            : rule.clockMode === "one"
+              ? 17
+              : 0,
       );
     }
 
@@ -3805,7 +3890,9 @@ function InteractiveLessonView({
                 Long Blue Hand = Minutes
               </div>
               <p className="text-sm font-bold text-slate-600 mt-1">
-                12 = :00 · 3 = :15 · 6 = :30 · 9 = :45
+                {rule.clockMode === "one"
+                  ? "Each tiny tick mark around the edge is 1 minute (60 total)!"
+                  : "12 = :00 · 3 = :15 · 6 = :30 · 9 = :45"}
               </p>
             </div>
           </div>
@@ -3866,7 +3953,7 @@ function InteractiveLessonView({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-wrap justify-center gap-2">
                 <button
                   type="button"
                   onClick={() => adjustMinutes(60)}
@@ -3874,6 +3961,15 @@ function InteractiveLessonView({
                 >
                   +1 Hour
                 </button>
+                {rule.clockMode === "one" && (
+                  <button
+                    type="button"
+                    onClick={() => adjustMinutes(5)}
+                    className="bg-teal-100 hover:bg-teal-200 text-teal-900 border-2 border-teal-300 px-3 py-1.5 rounded-xl font-black text-sm"
+                  >
+                    +5 Min
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => adjustMinutes(rule.minuteSnap || 5)}
@@ -3910,11 +4006,17 @@ function InteractiveLessonView({
                 { h: 8, m: 45 },
                 { h: 11, m: 15 },
               ]
-            : [
-                { h: 1, m: 20 },
-                { h: 5, m: 35 },
-                { h: 9, m: 50 },
-              ];
+            : rule.clockMode === "five"
+              ? [
+                  { h: 1, m: 20 },
+                  { h: 5, m: 35 },
+                  { h: 9, m: 50 },
+                ]
+              : [
+                  { h: 2, m: 13 },
+                  { h: 6, m: 28 },
+                  { h: 10, m: 47 },
+                ];
 
     return (
       <div className="space-y-5 text-center py-2">
@@ -3938,7 +4040,9 @@ function InteractiveLessonView({
                   hour={h}
                   minute={m}
                   sizeClass="w-28 h-28"
-                  showMinuteLabels={rule.clockMode === "five"}
+                  showMinuteLabels={
+                    rule.clockMode === "five" || rule.clockMode === "one"
+                  }
                 />
                 <span className="text-2xl font-black text-indigo-950">
                   {formatted}

@@ -565,6 +565,123 @@ const COIN_RULES = [
 
 const PLACE_VALUE_RULES = ["PV_1DIGIT", "PV_2DIGIT", "PV_3DIGIT", "PV_MIXED"];
 
+const ADDITION_RULES = [
+  "+1",
+  "+2",
+  "+3",
+  "+4",
+  "+5",
+  "+6",
+  "+7",
+  "+8",
+  "+9",
+  "+10",
+];
+
+const SUBTRACTION_RULES = [
+  "-1",
+  "-2",
+  "-3",
+  "-4",
+  "-5",
+  "-6",
+  "-7",
+  "-8",
+  "-9",
+  "-10",
+];
+
+const HOME_TABS = [
+  {
+    id: "ADD",
+    label: "Addition",
+    icon: "➕",
+    title: "Addition Rules",
+    subtitle: "Build mental math strategies from +1 to +10",
+    activeClass:
+      "bg-emerald-500 text-white border-emerald-700 shadow-md scale-[1.02]",
+    inactiveClass:
+      "bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100",
+    panelBorder: "border-emerald-300",
+    panelHeader: "bg-emerald-50 border-emerald-200",
+    rules: ADDITION_RULES,
+    gridClass: "grid-cols-2 md:grid-cols-5",
+  },
+  {
+    id: "SUB",
+    label: "Subtraction",
+    icon: "➖",
+    title: "Subtraction Rules",
+    subtitle: "Count back and use ten-jump tricks from -1 to -10",
+    activeClass:
+      "bg-orange-500 text-white border-orange-700 shadow-md scale-[1.02]",
+    inactiveClass:
+      "bg-orange-50 text-orange-900 border-orange-200 hover:bg-orange-100",
+    panelBorder: "border-orange-300",
+    panelHeader: "bg-orange-50 border-orange-200",
+    rules: SUBTRACTION_RULES,
+    gridClass: "grid-cols-2 md:grid-cols-5",
+  },
+  {
+    id: "CHALLENGES",
+    label: "Challenges",
+    icon: "🏆",
+    title: "Challenge Quizzes",
+    subtitle: "Mixed 10-question quizzes covering Addition & Subtraction rules",
+    activeClass:
+      "bg-purple-600 text-white border-purple-800 shadow-md scale-[1.02]",
+    inactiveClass:
+      "bg-purple-50 text-purple-900 border-purple-200 hover:bg-purple-100",
+    panelBorder: "border-purple-300",
+    panelHeader: "bg-purple-50 border-purple-200",
+  },
+  {
+    id: "SKIP",
+    label: "Skip Count",
+    icon: "🦘",
+    title: "Skip & Sliding Counts (Up to 200)",
+    subtitle: "Hop by 5s and 10s forward, backward, and from any number",
+    activeClass:
+      "bg-pink-500 text-white border-pink-700 shadow-md scale-[1.02]",
+    inactiveClass:
+      "bg-pink-50 text-pink-900 border-pink-200 hover:bg-pink-100",
+    panelBorder: "border-pink-300",
+    panelHeader: "bg-pink-50 border-pink-200",
+    rules: SKIP_COUNT_RULES,
+    gridClass: "grid-cols-2 md:grid-cols-5",
+  },
+  {
+    id: "PLACE_VALUE",
+    label: "Place Value",
+    icon: "🔢",
+    title: "1, 2 & 3-Digit Numbers",
+    subtitle: "Explore Ones, Tens, and Hundreds digit positions",
+    activeClass:
+      "bg-sky-500 text-white border-sky-700 shadow-md scale-[1.02]",
+    inactiveClass:
+      "bg-sky-50 text-sky-900 border-sky-200 hover:bg-sky-100",
+    panelBorder: "border-sky-300",
+    panelHeader: "bg-sky-50 border-sky-200",
+    rules: PLACE_VALUE_RULES,
+    gridClass: "grid-cols-2 md:grid-cols-4",
+  },
+  {
+    id: "COINS",
+    label: "Coins",
+    icon: "🪙",
+    title: "Counting Coins",
+    subtitle: "Learn coin values and count pennies, nickels, dimes & quarters",
+    activeClass:
+      "bg-amber-500 text-white border-amber-700 shadow-md scale-[1.02]",
+    inactiveClass:
+      "bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100",
+    panelBorder: "border-amber-300",
+    panelHeader: "bg-amber-50 border-amber-200",
+    rules: COIN_RULES,
+    gridClass: "grid-cols-2 md:grid-cols-5",
+  },
+];
+
 const AVATARS = [
   {
     id: "frog",
@@ -3426,6 +3543,7 @@ export default function App() {
   const [activeStudentId, setActiveStudentId] = useState(null);
 
   const [currentView, setCurrentView] = useState("PROFILES");
+  const [activeHomeTab, setActiveHomeTab] = useState("ADD");
   const [soundMuted, setSoundMuted] = useState(false);
   const [celebrationMsg, setCelebrationMsg] = useState(null);
 
@@ -4265,8 +4383,13 @@ export default function App() {
 
   const renderHomeView = () => {
     if (!activeStudent) return renderProfilesView();
+
+    const currentTab =
+      HOME_TABS.find((t) => t.id === activeHomeTab) || HOME_TABS[0];
+
     return (
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-5">
+        {/* Welcome Banner */}
         <div className="bg-gradient-to-r from-indigo-600 to-pink-500 rounded-3xl p-5 text-white shadow-xl flex items-center gap-4">
           <div className="text-5xl">{activeStudent.avatarEmoji}</div>
           <div>
@@ -4274,119 +4397,112 @@ export default function App() {
               Hi, {activeStudent.name}!
             </h2>
             <p className="font-bold text-indigo-100 text-sm">
-              Pick a topic below for a Lesson, Practice, or Quiz!
+              Pick a category tab below for a Lesson, Practice, or Quiz!
             </p>
           </div>
         </div>
 
-        {/* Counting Coins */}
-        <div>
-          <h3 className="text-xl font-black text-indigo-950 mb-3 bg-amber-100 inline-block px-3 py-1 rounded-lg border-2 border-amber-300">
-            Counting Coins 🪙
-          </h3>
-          {renderLessonCardGrid(COIN_RULES, "grid-cols-2 md:grid-cols-5", true)}
+        {/* Category Tabs */}
+        <div
+          role="tablist"
+          aria-label="Math Topics"
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5"
+        >
+          {HOME_TABS.map((tab) => {
+            const isActive = tab.id === currentTab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => {
+                  sound.playPop();
+                  setActiveHomeTab(tab.id);
+                }}
+                className={`flex items-center justify-center gap-2 px-3 py-3 rounded-2xl border-2 border-b-4 font-black text-sm sm:text-base transition-all active:scale-95 ${
+                  isActive ? tab.activeClass : tab.inactiveClass
+                }`}
+              >
+                <span className="text-xl leading-none">{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Place Value: 1, 2, & 3-Digit Numbers */}
-        <div>
-          <h3 className="text-xl font-black text-indigo-950 mb-3 bg-sky-100 inline-block px-3 py-1 rounded-lg border-2 border-sky-300">
-            1, 2 & 3-Digit Numbers (Positional Digits) 🔢
-          </h3>
-          {renderLessonCardGrid(
-            PLACE_VALUE_RULES,
-            "grid-cols-2 md:grid-cols-4",
-            true,
-          )}
-        </div>
-
-        {/* Skip & Sliding Counts */}
-        <div>
-          <h3 className="text-xl font-black text-indigo-950 mb-3 bg-pink-100 inline-block px-3 py-1 rounded-lg border-2 border-pink-300">
-            Skip & Sliding Counts (Up to 200) 🦘
-          </h3>
-          {renderLessonCardGrid(
-            SKIP_COUNT_RULES,
-            "grid-cols-2 md:grid-cols-5",
-            true,
-          )}
-        </div>
-
-        {/* Challenge Quizzes */}
-        <div>
-          <h3 className="text-xl font-black text-indigo-950 mb-3 bg-purple-100 inline-block px-3 py-1 rounded-lg border-2 border-purple-300">
-            Challenge Quizzes 🏆
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-4 flex flex-col justify-between text-white shadow-md border-4 border-indigo-400">
-              <div>
-                <h4 className="font-black text-xl mb-1">Mixed Scope</h4>
-                <p className="font-bold text-sm text-indigo-100">
-                  All addition and subtraction rules combined!
-                </p>
-              </div>
-              <button
-                onClick={() => startNewQuiz("ALL")}
-                className="mt-4 bg-white text-indigo-900 border-2 border-indigo-200 py-2 rounded-xl font-black text-sm hover:bg-indigo-50 active:scale-95 transition-transform"
-              >
-                Start Quiz (Up to 300 ⭐)
-              </button>
-            </div>
-
-            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-4 flex flex-col justify-between text-white shadow-md border-4 border-emerald-400">
-              <div>
-                <h4 className="font-black text-xl mb-1">All Addition</h4>
-                <p className="font-bold text-sm text-emerald-100">
-                  Every addition rule from +1 to +10!
-                </p>
-              </div>
-              <button
-                onClick={() => startNewQuiz("ADD")}
-                className="mt-4 bg-white text-emerald-900 border-2 border-emerald-200 py-2 rounded-xl font-black text-sm hover:bg-emerald-50 active:scale-95 transition-transform"
-              >
-                Start Quiz (Up to 300 ⭐)
-              </button>
-            </div>
-
-            <div className="bg-gradient-to-br from-orange-500 to-rose-600 rounded-2xl p-4 flex flex-col justify-between text-white shadow-md border-4 border-orange-400">
-              <div>
-                <h4 className="font-black text-xl mb-1">All Subtraction</h4>
-                <p className="font-bold text-sm text-orange-100">
-                  Every subtraction rule from -1 to -10!
-                </p>
-              </div>
-              <button
-                onClick={() => startNewQuiz("SUB")}
-                className="mt-4 bg-white text-orange-900 border-2 border-orange-200 py-2 rounded-xl font-black text-sm hover:bg-orange-50 active:scale-95 transition-transform"
-              >
-                Start Quiz (Up to 300 ⭐)
-              </button>
+        {/* Active Category Panel */}
+        <section
+          role="tabpanel"
+          className={`bg-white rounded-3xl border-2 ${currentTab.panelBorder} shadow-sm overflow-hidden`}
+        >
+          <div
+            className={`${currentTab.panelHeader} border-b-2 px-5 py-3.5 flex items-center gap-3`}
+          >
+            <span className="text-3xl">{currentTab.icon}</span>
+            <div>
+              <h3 className="text-xl font-black text-indigo-950 leading-tight">
+                {currentTab.title}
+              </h3>
+              <p className="text-xs sm:text-sm font-bold text-slate-600">
+                {currentTab.subtitle}
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* Addition Rules */}
-        <div>
-          <h3 className="text-xl font-black text-indigo-950 mb-3 bg-emerald-100 inline-block px-3 py-1 rounded-lg">
-            Addition Rules ➡️
-          </h3>
-          {renderLessonCardGrid(
-            ["+1", "+2", "+3", "+4", "+5", "+6", "+7", "+8", "+9", "+10"],
-            "grid-cols-2 md:grid-cols-5",
-            true,
-          )}
-        </div>
+          <div className="p-4">
+            {currentTab.id === "CHALLENGES" ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-4 flex flex-col justify-between text-white shadow-md border-4 border-indigo-400">
+                  <div>
+                    <h4 className="font-black text-xl mb-1">Mixed Scope</h4>
+                    <p className="font-bold text-sm text-indigo-100">
+                      All addition and subtraction rules combined!
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => startNewQuiz("ALL")}
+                    className="mt-4 bg-white text-indigo-900 border-2 border-indigo-200 py-2 rounded-xl font-black text-sm hover:bg-indigo-50 active:scale-95 transition-transform"
+                  >
+                    Start Quiz (Up to 300 ⭐)
+                  </button>
+                </div>
 
-        {/* Subtraction Rules */}
-        <div>
-          <h3 className="text-xl font-black text-indigo-950 mb-3 bg-orange-100 inline-block px-3 py-1 rounded-lg">
-            Subtraction Rules ⬅️
-          </h3>
-          {renderLessonCardGrid(
-            ["-1", "-2", "-3", "-4", "-5", "-6", "-7", "-8", "-9", "-10"],
-            "grid-cols-2 md:grid-cols-5",
-            true,
-          )}
-        </div>
+                <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-4 flex flex-col justify-between text-white shadow-md border-4 border-emerald-400">
+                  <div>
+                    <h4 className="font-black text-xl mb-1">All Addition</h4>
+                    <p className="font-bold text-sm text-emerald-100">
+                      Every addition rule from +1 to +10!
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => startNewQuiz("ADD")}
+                    className="mt-4 bg-white text-emerald-900 border-2 border-emerald-200 py-2 rounded-xl font-black text-sm hover:bg-emerald-50 active:scale-95 transition-transform"
+                  >
+                    Start Quiz (Up to 300 ⭐)
+                  </button>
+                </div>
+
+                <div className="bg-gradient-to-br from-orange-500 to-rose-600 rounded-2xl p-4 flex flex-col justify-between text-white shadow-md border-4 border-orange-400">
+                  <div>
+                    <h4 className="font-black text-xl mb-1">All Subtraction</h4>
+                    <p className="font-bold text-sm text-orange-100">
+                      Every subtraction rule from -1 to -10!
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => startNewQuiz("SUB")}
+                    className="mt-4 bg-white text-orange-900 border-2 border-orange-200 py-2 rounded-xl font-black text-sm hover:bg-orange-50 active:scale-95 transition-transform"
+                  >
+                    Start Quiz (Up to 300 ⭐)
+                  </button>
+                </div>
+              </div>
+            ) : (
+              renderLessonCardGrid(currentTab.rules, currentTab.gridClass, true)
+            )}
+          </div>
+        </section>
       </div>
     );
   };

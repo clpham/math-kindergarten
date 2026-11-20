@@ -545,6 +545,71 @@ const MATH_RULES = {
     border: "border-fuchsia-400",
     text: "text-fuchsia-900",
   },
+  // Telling Time (Clock)
+  CLOCK_HOUR: {
+    id: "CLOCK_HOUR",
+    category: "CLOCK",
+    clockMode: "hour",
+    minuteSnap: 60,
+    op: "+",
+    val: 3,
+    label: "O'Clock (:00)",
+    title: "To the Hour",
+    voiceRule:
+      "When the long blue minute hand points straight up to 12, it is o'clock! Look at the short red hour hand.",
+    color: "from-rose-500 to-red-600",
+    bgLight: "bg-rose-50",
+    border: "border-rose-400",
+    text: "text-rose-900",
+  },
+  CLOCK_HALF: {
+    id: "CLOCK_HALF",
+    category: "CLOCK",
+    clockMode: "half",
+    minuteSnap: 30,
+    op: "+",
+    val: 5,
+    label: "Half Past (:30)",
+    title: "Hours & Half Hours",
+    voiceRule:
+      "When the long blue hand points straight down to 6, that is 30 minutes, or half past the hour!",
+    color: "from-sky-500 to-indigo-600",
+    bgLight: "bg-sky-50",
+    border: "border-sky-400",
+    text: "text-sky-900",
+  },
+  CLOCK_QUARTER: {
+    id: "CLOCK_QUARTER",
+    category: "CLOCK",
+    clockMode: "quarter",
+    minuteSnap: 15,
+    op: "+",
+    val: 7,
+    label: "Quarters (:15/:45)",
+    title: "Quarter Past & To",
+    voiceRule:
+      "Pointing to 3 means 15 minutes! Pointing to 9 means 45 minutes!",
+    color: "from-violet-500 to-purple-600",
+    bgLight: "bg-violet-50",
+    border: "border-violet-400",
+    text: "text-violet-900",
+  },
+  CLOCK_FIVE: {
+    id: "CLOCK_FIVE",
+    category: "CLOCK",
+    clockMode: "five",
+    minuteSnap: 5,
+    op: "+",
+    val: 9,
+    label: "By 5 Minutes",
+    title: "Count by 5s on Clock",
+    voiceRule:
+      "Each big number on the clock is 5 minutes! Count by fives around the clock.",
+    color: "from-teal-500 to-emerald-600",
+    bgLight: "bg-teal-50",
+    border: "border-teal-400",
+    text: "text-teal-900",
+  },
 };
 
 const SKIP_COUNT_RULES = [
@@ -564,6 +629,8 @@ const COIN_RULES = [
 ];
 
 const PLACE_VALUE_RULES = ["PV_1DIGIT", "PV_2DIGIT", "PV_3DIGIT", "PV_MIXED"];
+
+const CLOCK_RULES = ["CLOCK_HOUR", "CLOCK_HALF", "CLOCK_QUARTER", "CLOCK_FIVE"];
 
 const ADDITION_RULES = [
   "+1",
@@ -679,6 +746,21 @@ const HOME_TABS = [
     panelHeader: "bg-amber-50 border-amber-200",
     rules: COIN_RULES,
     gridClass: "grid-cols-2 md:grid-cols-5",
+  },
+  {
+    id: "CLOCK",
+    label: "Clock",
+    icon: "🕐",
+    title: "Telling Time",
+    subtitle: "Move the hour and minute hands to read and set the clock",
+    activeClass:
+      "bg-rose-500 text-white border-rose-700 shadow-md scale-[1.02]",
+    inactiveClass:
+      "bg-rose-50 text-rose-900 border-rose-200 hover:bg-rose-100",
+    panelBorder: "border-rose-300",
+    panelHeader: "bg-rose-50 border-rose-200",
+    rules: CLOCK_RULES,
+    gridClass: "grid-cols-2 md:grid-cols-4",
   },
 ];
 
@@ -1341,6 +1423,118 @@ function generatePlaceValueQuestion(rule, usedKeys = []) {
   };
 }
 
+function formatClockTime(hour, minute) {
+  const h = ((hour - 1 + 12) % 12) + 1;
+  const m = String(minute).padStart(2, "0");
+  return `${h}:${m}`;
+}
+
+function speakClockTime(hour, minute) {
+  const h = ((hour - 1 + 12) % 12) + 1;
+  if (minute === 0) return `${h} o'clock`;
+  if (minute < 10) return `${h} oh ${minute}`;
+  return `${h} ${minute}`;
+}
+
+function generateClockQuestion(rule, usedKeys = [], forceMode = null) {
+  let hour = 3;
+  let minute = 0;
+  let qMode = forceMode || (Math.random() < 0.5 ? "set_clock" : "read_clock");
+  let generatedKey = "";
+  let attempts = 0;
+
+  const allowedMinutes =
+    rule.clockMode === "hour"
+      ? [0]
+      : rule.clockMode === "half"
+        ? [0, 30]
+        : rule.clockMode === "quarter"
+          ? [0, 15, 30, 45]
+          : [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+
+  do {
+    hour = Math.floor(Math.random() * 12) + 1;
+    minute = allowedMinutes[Math.floor(Math.random() * allowedMinutes.length)];
+    generatedKey = `${rule.id}_${hour}_${minute}_${qMode}`;
+    attempts++;
+  } while (usedKeys.includes(generatedKey) && attempts < 50);
+
+  const answer = formatClockTime(hour, minute);
+  const spoken = speakClockTime(hour, minute);
+
+  // Pick a different starting position for "set_clock"
+  const startHour = ((hour + 5) % 12) + 1;
+  const startMinute = minute === 0 ? 30 : 0;
+
+  // Build 4 multiple-choice options for "read_clock"
+  const optionsSet = new Set([answer]);
+  let optAttempts = 0;
+  while (optionsSet.size < 4 && optAttempts < 100) {
+    optAttempts++;
+    const candH =
+      Math.random() < 0.6
+        ? ((hour + (Math.random() < 0.5 ? 1 : -1) - 1 + 12) % 12) + 1
+        : Math.floor(Math.random() * 12) + 1;
+    const candM =
+      allowedMinutes[Math.floor(Math.random() * allowedMinutes.length)];
+    optionsSet.add(formatClockTime(candH, candM));
+  }
+
+  const minuteMark = minute === 0 ? 12 : minute / 5;
+  const steps = [
+    {
+      phase: "hour",
+      hour,
+      minute: 0,
+      label: `Red Hour hand → ${hour}`,
+      voice: `The short red hour hand points to ${hour}.`,
+    },
+    {
+      phase: "minute",
+      hour,
+      minute,
+      label:
+        minute === 0
+          ? `Blue Minute hand → 12 (:00) = ${answer}`
+          : `Blue Minute hand → ${minuteMark} (:${String(minute).padStart(2, "0")}) = ${answer}`,
+      voice:
+        minute === 0
+          ? `The long blue minute hand points to 12 for o'clock! That is ${spoken}!`
+          : `The long blue minute hand points to ${minuteMark}, which is ${minute} minutes! That is ${spoken}!`,
+    },
+  ];
+
+  return {
+    key: generatedKey,
+    rule,
+    answer,
+    answerUnit: "",
+    options: Array.from(optionsSet).sort((a, b) => {
+      const [ah, am] = a.split(":").map(Number);
+      const [bh, bm] = b.split(":").map(Number);
+      return ah * 60 + am - (bh * 60 + bm);
+    }),
+    steps,
+    promptText:
+      qMode === "set_clock"
+        ? `Move the hands to show ${answer}!`
+        : "What time does the clock show?",
+    voicePrompt:
+      qMode === "set_clock"
+        ? `Move the clock hands to show ${spoken}!`
+        : "Look at the clock! What time is it?",
+    equationLog: `Clock ${answer}`,
+    clock: {
+      hour,
+      minute,
+      startHour,
+      startMinute,
+      qMode,
+      minuteSnap: rule.minuteSnap || 5,
+    },
+  };
+}
+
 function generateMathQuestion(
   ruleKey = "ALL",
   usedKeys = [],
@@ -1360,6 +1554,9 @@ function generateMathQuestion(
   }
   if (rule.category === "PLACE_VALUE") {
     return generatePlaceValueQuestion(rule, usedKeys);
+  }
+  if (rule.category === "CLOCK") {
+    return generateClockQuestion(rule, usedKeys);
   }
 
   let startNum = 5;
@@ -2485,6 +2682,401 @@ function InteractivePlaceValueBoard({
 }
 
 // ==========================================
+// 5C-2. MOVABLE-HAND ANALOG CLOCK
+// ==========================================
+function AnalogClock({
+  hour,
+  minute,
+  interactive = false,
+  minuteSnap = 5,
+  showMinuteLabels = false,
+  highlightHand = null, // "hour" | "minute" | null
+  ghostTarget = null, // { hour, minute } for hints
+  onChange = null,
+  sizeClass = "w-64 h-64 sm:w-72 sm:h-72",
+}) {
+  const svgRef = useRef(null);
+  const [dragging, setDragging] = useState(null); // "hour" | "minute" | null
+  const lastMinuteRef = useRef(minute);
+
+  useEffect(() => {
+    lastMinuteRef.current = minute;
+  }, [minute]);
+
+  const getAngleFromPointer = (clientX, clientY) => {
+    const rect = svgRef.current.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    let deg = (Math.atan2(clientY - cy, clientX - cx) * 180) / Math.PI + 90;
+    if (deg < 0) deg += 360;
+    return deg;
+  };
+
+  const updateFromPointer = (hand, clientX, clientY) => {
+    if (!interactive || !onChange || !svgRef.current) return;
+    const deg = getAngleFromPointer(clientX, clientY);
+
+    if (hand === "hour") {
+      const snappedH = Math.round(deg / 30) % 12;
+      const nextHour = snappedH === 0 ? 12 : snappedH;
+      if (nextHour !== hour) {
+        onChange(nextHour, minute);
+      }
+    } else if (hand === "minute") {
+      const rawMin = (deg / 360) * 60;
+      const snappedM = (Math.round(rawMin / minuteSnap) * minuteSnap) % 60;
+      const prevM = lastMinuteRef.current;
+
+      // Geared hour hand: roll hour forward/backward when crossing 12
+      let nextHour = hour;
+      if (prevM >= 45 && snappedM <= 15) {
+        nextHour = (hour % 12) + 1;
+      } else if (prevM <= 15 && snappedM >= 45) {
+        nextHour = ((hour - 2 + 12) % 12) + 1;
+      }
+
+      if (snappedM !== prevM || nextHour !== hour) {
+        lastMinuteRef.current = snappedM;
+        onChange(nextHour, snappedM);
+      }
+    }
+  };
+
+  const handlePointerDown = (hand) => (e) => {
+    if (!interactive) return;
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDragging(hand);
+    sound.playPop();
+    updateFromPointer(hand, e.clientX, e.clientY);
+  };
+
+  const handlePointerMove = (e) => {
+    if (!dragging) return;
+    e.preventDefault();
+    updateFromPointer(dragging, e.clientX, e.clientY);
+  };
+
+  const handlePointerUp = (e) => {
+    if (!dragging) return;
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    setDragging(null);
+  };
+
+  const hourAngle = ((hour % 12) + minute / 60) * 30;
+  const minuteAngle = minute * 6;
+
+  const ghostHourAngle = ghostTarget
+    ? ((ghostTarget.hour % 12) + ghostTarget.minute / 60) * 30
+    : null;
+  const ghostMinuteAngle = ghostTarget ? ghostTarget.minute * 6 : null;
+
+  return (
+    <svg
+      ref={svgRef}
+      viewBox="0 0 300 300"
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      className={`${sizeClass} select-none touch-none drop-shadow-md`}
+    >
+      {/* Outer Rim */}
+      <circle
+        cx="150"
+        cy="150"
+        r="142"
+        fill="#ffffff"
+        stroke="#6366f1"
+        strokeWidth="10"
+      />
+      <circle
+        cx="150"
+        cy="150"
+        r="134"
+        fill="#f8fafc"
+        stroke="#e0e7ff"
+        strokeWidth="3"
+      />
+
+      {/* 60 Minute Tick Marks */}
+      {Array.from({ length: 60 }).map((_, i) => {
+        const isHourMark = i % 5 === 0;
+        const rad = ((i * 6 - 90) * Math.PI) / 180;
+        const r1 = isHourMark ? 118 : 124;
+        const r2 = 131;
+        return (
+          <line
+            key={i}
+            x1={150 + r1 * Math.cos(rad)}
+            y1={150 + r1 * Math.sin(rad)}
+            x2={150 + r2 * Math.cos(rad)}
+            y2={150 + r2 * Math.sin(rad)}
+            stroke={isHourMark ? "#334155" : "#cbd5e1"}
+            strokeWidth={isHourMark ? "3.5" : "1.5"}
+            strokeLinecap="round"
+          />
+        );
+      })}
+
+      {/* Hour Numbers (1-12) & Optional 5-Minute Labels */}
+      {Array.from({ length: 12 }).map((_, idx) => {
+        const num = idx + 1;
+        const rad = ((num * 30 - 90) * Math.PI) / 180;
+        const hx = 150 + 98 * Math.cos(rad);
+        const hy = 150 + 98 * Math.sin(rad);
+        const mx = 150 + 123 * Math.cos(rad);
+        const my = 150 + 123 * Math.sin(rad);
+        const minLabel = num === 12 ? "00" : String(num * 5).padStart(2, "0");
+
+        return (
+          <g key={num}>
+            <text
+              x={hx}
+              y={hy + 8}
+              textAnchor="middle"
+              className="font-black text-[22px] fill-indigo-950"
+            >
+              {num}
+            </text>
+            {showMinuteLabels && (
+              <text
+                x={mx}
+                y={my + 4}
+                textAnchor="middle"
+                className="font-extrabold text-[10px] fill-sky-600"
+              >
+                :{minLabel}
+              </text>
+            )}
+          </g>
+        );
+      })}
+
+      {/* Ghost Hint Hands */}
+      {ghostTarget && (
+        <g opacity="0.35">
+          <line
+            x1="150"
+            y1="150"
+            x2="150"
+            y2="82"
+            stroke="#e11d48"
+            strokeWidth="10"
+            strokeLinecap="round"
+            strokeDasharray="6,6"
+            transform={`rotate(${ghostHourAngle} 150 150)`}
+          />
+          <line
+            x1="150"
+            y1="150"
+            x2="150"
+            y2="46"
+            stroke="#0284c7"
+            strokeWidth="7"
+            strokeLinecap="round"
+            strokeDasharray="6,6"
+            transform={`rotate(${ghostMinuteAngle} 150 150)`}
+          />
+        </g>
+      )}
+
+      {/* Hour Hand (Short, Red) */}
+      <g
+        transform={`rotate(${hourAngle} 150 150)`}
+        onPointerDown={handlePointerDown("hour")}
+        className={interactive ? "cursor-grab active:cursor-grabbing" : ""}
+      >
+        <line
+          x1="150"
+          y1="150"
+          x2="150"
+          y2="82"
+          stroke={highlightHand === "hour" ? "#f43f5e" : "#e11d48"}
+          strokeWidth={highlightHand === "hour" ? "13" : "10"}
+          strokeLinecap="round"
+        />
+        {interactive && (
+          <>
+            {/* Generous touch target */}
+            <line
+              x1="150"
+              y1="150"
+              x2="150"
+              y2="78"
+              stroke="transparent"
+              strokeWidth="32"
+            />
+            <circle
+              cx="150"
+              cy="82"
+              r={dragging === "hour" ? "11" : "8"}
+              fill="#e11d48"
+              stroke="#ffffff"
+              strokeWidth="3"
+            />
+          </>
+        )}
+      </g>
+
+      {/* Minute Hand (Long, Blue) */}
+      <g
+        transform={`rotate(${minuteAngle} 150 150)`}
+        onPointerDown={handlePointerDown("minute")}
+        className={interactive ? "cursor-grab active:cursor-grabbing" : ""}
+      >
+        <line
+          x1="150"
+          y1="150"
+          x2="150"
+          y2="46"
+          stroke={highlightHand === "minute" ? "#38bdf8" : "#0284c7"}
+          strokeWidth={highlightHand === "minute" ? "10" : "7"}
+          strokeLinecap="round"
+        />
+        {interactive && (
+          <>
+            {/* Generous touch target */}
+            <line
+              x1="150"
+              y1="150"
+              x2="150"
+              y2="42"
+              stroke="transparent"
+              strokeWidth="32"
+            />
+            <circle
+              cx="150"
+              cy="46"
+              r={dragging === "minute" ? "11" : "8"}
+              fill="#0284c7"
+              stroke="#ffffff"
+              strokeWidth="3"
+            />
+          </>
+        )}
+      </g>
+
+      {/* Center Pin */}
+      <circle
+        cx="150"
+        cy="150"
+        r="9"
+        fill="#312e81"
+        stroke="#ffffff"
+        strokeWidth="3"
+      />
+    </svg>
+  );
+}
+
+function InteractiveClockBoard({
+  question,
+  userTime,
+  onUserTimeChange,
+  animStepIndex,
+  showHintPreview = false,
+  isAnsweredCorrectly = false,
+}) {
+  const { clock, steps = [] } = question;
+  if (!clock) return null;
+
+  const isSetMode = clock.qMode === "set_clock";
+  const activeStep =
+    animStepIndex >= 0
+      ? steps[Math.min(animStepIndex, steps.length - 1)]
+      : null;
+
+  const displayHour = activeStep
+    ? activeStep.hour
+    : isSetMode
+      ? userTime.hour
+      : clock.hour;
+  const displayMinute = activeStep
+    ? activeStep.minute
+    : isSetMode
+      ? userTime.minute
+      : clock.minute;
+
+  return (
+    <div className="w-full bg-gradient-to-b from-rose-50 via-white to-sky-50 rounded-3xl p-4 sm:p-5 border-4 border-rose-300 shadow-inner select-none space-y-3">
+      <div className="flex flex-wrap justify-between items-center gap-2">
+        <div className="text-indigo-950 font-black text-base sm:text-xl">
+          🕐 {question.promptText}
+        </div>
+        {activeStep ? (
+          <div className="bg-white border-2 border-indigo-400 text-indigo-900 px-4 py-1 rounded-full font-black text-sm shadow-sm animate-bounce">
+            ✨ {activeStep.label}
+          </div>
+        ) : showHintPreview ? (
+          <div className="bg-amber-100 border-2 border-amber-400 text-amber-900 px-3 py-1 rounded-full font-bold text-xs sm:text-sm">
+            💡 Short Red = Hour · Long Blue = Minutes
+          </div>
+        ) : null}
+      </div>
+
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-6 py-2">
+        <AnalogClock
+          hour={displayHour}
+          minute={displayMinute}
+          interactive={isSetMode && !isAnsweredCorrectly && animStepIndex < 0}
+          minuteSnap={clock.minuteSnap}
+          showMinuteLabels={
+            showHintPreview ||
+            question.rule.clockMode === "five" ||
+            animStepIndex >= 0
+          }
+          highlightHand={activeStep?.phase || null}
+          ghostTarget={
+            isSetMode && showHintPreview && !isAnsweredCorrectly
+              ? { hour: clock.hour, minute: clock.minute }
+              : null
+          }
+          onChange={onUserTimeChange}
+        />
+
+        <div className="flex flex-col items-center gap-3">
+          {isSetMode ? (
+            <>
+              <div className="bg-white border-4 border-indigo-300 rounded-2xl px-6 py-3 text-center shadow-sm">
+                <div className="text-xs font-black uppercase text-slate-500">
+                  Target Time
+                </div>
+                <div className="text-4xl sm:text-5xl font-black tracking-wider">
+                  <span className="text-rose-600">{clock.hour}</span>
+                  <span className="text-slate-400">:</span>
+                  <span className="text-sky-600">
+                    {String(clock.minute).padStart(2, "0")}
+                  </span>
+                </div>
+              </div>
+              <div className="text-sm font-bold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-xl">
+                Your clock:{" "}
+                <span className="font-black text-indigo-950">
+                  {formatClockTime(userTime.hour, userTime.minute)}
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="bg-white border-2 border-indigo-200 rounded-2xl p-4 text-center space-y-1.5 max-w-[200px]">
+              <div className="flex items-center justify-center gap-2 text-sm font-black text-rose-600">
+                <span className="w-4 h-1.5 bg-rose-600 rounded-full inline-block" />
+                Short = Hour
+              </div>
+              <div className="flex items-center justify-center gap-2 text-sm font-black text-sky-600">
+                <span className="w-6 h-1.5 bg-sky-600 rounded-full inline-block" />
+                Long = Minutes
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
 // 5D. INTERACTIVE LESSON VIEW (ALL TOPICS)
 // ==========================================
 function InteractiveLessonView({
@@ -2582,6 +3174,8 @@ function InteractiveLessonView({
   const [builderH, setBuilderH] = useState(0);
   const [builderT, setBuilderT] = useState(0);
   const [builderO, setBuilderO] = useState(5);
+  const [sandboxHour, setSandboxHour] = useState(3);
+  const [sandboxMinute, setSandboxMinute] = useState(0);
 
   // Number Line Sandbox State (Addition, Subtraction, Skip & Sliding Counts)
   const [demoQuestion, setDemoQuestion] = useState(() =>
@@ -2606,6 +3200,17 @@ function InteractiveLessonView({
     setStep(0);
     setTappedCoinIndices([]);
     setDemoAnimStep(-1);
+
+    if (rule.category === "CLOCK") {
+      setSandboxHour(3);
+      setSandboxMinute(
+        rule.clockMode === "half"
+          ? 30
+          : rule.clockMode === "quarter"
+            ? 15
+            : 0,
+      );
+    }
 
     if (!rule.category) {
       setDemoQuestion(generateMathQuestion(rule.id));
@@ -3151,6 +3756,221 @@ function InteractiveLessonView({
     );
   };
 
+  // --- CLOCK LESSON ---
+  const renderClockLessonBody = () => {
+    if (step === 0) {
+      return (
+        <div className="space-y-5">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h3 className="text-2xl font-black text-indigo-950">
+              Step 1: Meet the Clock Hands!
+            </h3>
+            <button
+              onClick={() => sound.speak(rule.voiceRule)}
+              className="flex items-center gap-1.5 bg-rose-100 hover:bg-rose-200 text-rose-900 border-2 border-rose-400 px-3 py-1.5 rounded-xl font-black text-sm"
+            >
+              <Volume2 className="w-4 h-4" /> Read Rule
+            </button>
+          </div>
+
+          <p className="text-lg font-bold text-slate-700 bg-rose-50 border-2 border-rose-200 p-4 rounded-2xl">
+            {rule.voiceRule}
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+            <div
+              onClick={() => {
+                sound.playPop();
+                sound.speak(
+                  "The short red hand is the Hour hand! It tells us what hour it is.",
+                );
+              }}
+              className="bg-rose-50 border-4 border-rose-300 rounded-3xl p-5 text-center cursor-pointer active:scale-95 transition-transform"
+            >
+              <div className="w-16 h-3 bg-rose-600 rounded-full mx-auto mb-3" />
+              <div className="font-black text-xl text-rose-900">
+                Short Red Hand = Hour
+              </div>
+              <p className="text-sm font-bold text-slate-600 mt-1">
+                Points to the big hour number (1 to 12).
+              </p>
+            </div>
+
+            <div
+              onClick={() => {
+                sound.playPop();
+                sound.speak(
+                  "The long blue hand is the Minute hand! Twelve means o'clock, and six means thirty minutes!",
+                );
+              }}
+              className="bg-sky-50 border-4 border-sky-300 rounded-3xl p-5 text-center cursor-pointer active:scale-95 transition-transform"
+            >
+              <div className="w-24 h-2.5 bg-sky-600 rounded-full mx-auto mb-3" />
+              <div className="font-black text-xl text-sky-900">
+                Long Blue Hand = Minutes
+              </div>
+              <p className="text-sm font-bold text-slate-600 mt-1">
+                12 = :00 · 3 = :15 · 6 = :30 · 9 = :45
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (step === 1) {
+      const adjustMinutes = (delta) => {
+        sound.playPop();
+        const total = (sandboxHour % 12) * 60 + sandboxMinute + delta;
+        const normalized = ((total % 720) + 720) % 720;
+        const nextH = Math.floor(normalized / 60) || 12;
+        const nextM = normalized % 60;
+        setSandboxHour(nextH);
+        setSandboxMinute(nextM);
+      };
+
+      return (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-2xl font-black text-indigo-950">
+              Step 2: Drag the Hands!
+            </h3>
+            <button
+              onClick={() =>
+                sound.speak(
+                  `The clock shows ${speakClockTime(sandboxHour, sandboxMinute)}!`,
+                )
+              }
+              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-xl font-black text-sm"
+            >
+              <Volume2 className="w-4 h-4" /> Read Time
+            </button>
+          </div>
+
+          <div className="bg-gradient-to-b from-rose-50 to-sky-50 border-4 border-indigo-200 rounded-3xl p-5 flex flex-col sm:flex-row items-center justify-center gap-6">
+            <AnalogClock
+              hour={sandboxHour}
+              minute={sandboxMinute}
+              interactive={true}
+              minuteSnap={rule.minuteSnap || 5}
+              showMinuteLabels={true}
+              onChange={(h, m) => {
+                setSandboxHour(h);
+                setSandboxMinute(m);
+              }}
+            />
+
+            <div className="flex flex-col items-center gap-3">
+              <div className="bg-white border-4 border-indigo-300 rounded-2xl px-6 py-3 shadow-sm">
+                <div className="text-5xl font-black tracking-wider">
+                  <span className="text-rose-600">{sandboxHour}</span>
+                  <span className="text-slate-400">:</span>
+                  <span className="text-sky-600">
+                    {String(sandboxMinute).padStart(2, "0")}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => adjustMinutes(60)}
+                  className="bg-rose-100 hover:bg-rose-200 text-rose-900 border-2 border-rose-300 px-3 py-1.5 rounded-xl font-black text-sm"
+                >
+                  +1 Hour
+                </button>
+                <button
+                  type="button"
+                  onClick={() => adjustMinutes(rule.minuteSnap || 5)}
+                  className="bg-sky-100 hover:bg-sky-200 text-sky-900 border-2 border-sky-300 px-3 py-1.5 rounded-xl font-black text-sm"
+                >
+                  +{rule.minuteSnap === 60 ? "1 Hr" : `${rule.minuteSnap} Min`}
+                </button>
+              </div>
+              <p className="text-xs font-bold text-slate-500 text-center max-w-[180px]">
+                Grab the red or blue dot on the clock hands to spin them!
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const sampleTimes =
+      rule.clockMode === "hour"
+        ? [
+            { h: 3, m: 0 },
+            { h: 7, m: 0 },
+            { h: 12, m: 0 },
+          ]
+        : rule.clockMode === "half"
+          ? [
+              { h: 2, m: 30 },
+              { h: 6, m: 30 },
+              { h: 10, m: 30 },
+            ]
+          : rule.clockMode === "quarter"
+            ? [
+                { h: 4, m: 15 },
+                { h: 8, m: 45 },
+                { h: 11, m: 15 },
+              ]
+            : [
+                { h: 1, m: 20 },
+                { h: 5, m: 35 },
+                { h: 9, m: 50 },
+              ];
+
+    return (
+      <div className="space-y-5 text-center py-2">
+        <h3 className="text-2xl sm:text-3xl font-black text-indigo-950">
+          Step 3: Tap a Clock to Hear the Time!
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
+          {sampleTimes.map(({ h, m }) => {
+            const formatted = formatClockTime(h, m);
+            return (
+              <button
+                key={formatted}
+                type="button"
+                onClick={() => {
+                  sound.playPop();
+                  sound.speak(speakClockTime(h, m));
+                }}
+                className="bg-indigo-50 border-2 border-indigo-200 hover:border-indigo-400 rounded-2xl p-3 flex flex-col items-center gap-2 active:scale-95 transition-transform"
+              >
+                <AnalogClock
+                  hour={h}
+                  minute={m}
+                  sizeClass="w-28 h-28"
+                  showMinuteLabels={rule.clockMode === "five"}
+                />
+                <span className="text-2xl font-black text-indigo-950">
+                  {formatted}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-3 pt-2">
+          <button
+            onClick={() => onStartPractice(rule.id)}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg px-8 py-3 rounded-2xl border-b-4 border-emerald-700 active:scale-95 transition-transform"
+          >
+            Start Practice →
+          </button>
+          <button
+            onClick={() => onStartQuiz(rule.id)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg px-8 py-3 rounded-2xl border-b-4 border-indigo-800 active:scale-95 transition-transform"
+          >
+            Take 10-Question Quiz 🏆
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   // --- NUMBER LINE LESSON (SKIP/SLIDING, ADDITION, SUBTRACTION) ---
   const renderNumberLineLessonBody = () => {
     const isSkipOrSlide = Boolean(rule.max);
@@ -3487,7 +4307,9 @@ function InteractiveLessonView({
           ? renderCoinLessonBody()
           : rule.category === "PLACE_VALUE"
             ? renderPlaceValueLessonBody()
-            : renderNumberLineLessonBody()}
+            : rule.category === "CLOCK"
+              ? renderClockLessonBody()
+              : renderNumberLineLessonBody()}
       </div>
 
       {/* Prev / Next Navigation */}
@@ -3573,6 +4395,14 @@ export default function App() {
   const [practiceShowHint, setPracticeShowHint] = useState(false);
   const [practiceFirstTry, setPracticeFirstTry] = useState(true);
   const [practiceStreak, setPracticeStreak] = useState(0);
+  const [practiceClockTime, setPracticeClockTime] = useState({
+    hour: 12,
+    minute: 0,
+  });
+  const [quizClockTime, setQuizClockTime] = useState({
+    hour: 12,
+    minute: 0,
+  });
 
   // Quiz State
   const QUIZ_TOTAL_QUESTIONS = 10;
@@ -3640,6 +4470,25 @@ export default function App() {
       else setActiveStudentId(null);
     }
   }, [isLoadingData, students, activeStudentId, currentView]);
+
+  useEffect(() => {
+    if (practiceQuestion?.clock) {
+      setPracticeClockTime({
+        hour: practiceQuestion.clock.startHour,
+        minute: practiceQuestion.clock.startMinute,
+      });
+    }
+  }, [practiceQuestion?.key]);
+
+  useEffect(() => {
+    const q = quizQuestions[quizCurrentIndex];
+    if (q?.clock) {
+      setQuizClockTime({
+        hour: q.clock.startHour,
+        minute: q.clock.startMinute,
+      });
+    }
+  }, [quizCurrentIndex, quizQuestions]);
 
   const activeStudent = useMemo(
     () => students.find((s) => s.id === activeStudentId) || null,
@@ -4406,7 +5255,7 @@ export default function App() {
         <div
           role="tablist"
           aria-label="Math Topics"
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5"
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5"
         >
           {HOME_TABS.map((tab) => {
             const isActive = tab.id === currentTab.id;
@@ -4513,12 +5362,15 @@ export default function App() {
     const isCustomizableRule = Boolean(rule.max);
     const isCoins = rule.category === "COINS";
     const isPlaceValue = rule.category === "PLACE_VALUE";
+    const isClock = rule.category === "CLOCK";
 
     const helpButtonText = isCoins
       ? "Show me how to count!"
-      : isPlaceValue
-        ? "Show me the place values!"
-        : "Show me the hops!";
+      : isClock
+        ? "Show me the time!"
+        : isPlaceValue
+          ? "Show me the place values!"
+          : "Show me the hops!";
 
     return (
       <div className="max-w-4xl mx-auto px-2 py-4 space-y-3">
@@ -4544,7 +5396,7 @@ export default function App() {
             >
               <BookOpen className="w-4 h-4" /> Lesson
             </button>
-            {!isCoins && !isPlaceValue ? (
+            {!isCoins && !isPlaceValue && !isClock ? (
               <div className="bg-white px-4 py-2 rounded-2xl border-2 border-indigo-200 text-2xl font-black text-indigo-950">
                 {startNum}{" "}
                 <span
@@ -4626,6 +5478,17 @@ export default function App() {
             showHintPreview={practiceShowHint}
             isAnsweredCorrectly={practiceIsCorrect === true}
           />
+        ) : isClock ? (
+          <InteractiveClockBoard
+            question={practiceQuestion}
+            userTime={practiceClockTime}
+            onUserTimeChange={(h, m) =>
+              setPracticeClockTime({ hour: h, minute: m })
+            }
+            animStepIndex={practiceAnimStep}
+            showHintPreview={practiceShowHint}
+            isAnsweredCorrectly={practiceIsCorrect === true}
+          />
         ) : (
           <InteractiveNumberLine
             question={practiceQuestion}
@@ -4638,7 +5501,7 @@ export default function App() {
           />
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-1">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-1">
           <button
             onClick={handleDemonstrateRule}
             className="sm:col-span-4 bg-amber-100 py-2 rounded-2xl border-2 border-amber-400 text-amber-900 font-bold flex justify-center items-center gap-2"
@@ -4672,6 +5535,29 @@ export default function App() {
                 Next →
               </button>
             </div>
+          ) : isClock && practiceQuestion.clock?.qMode === "set_clock" ? (
+            <button
+              onClick={() =>
+                handlePracticeAnswerTap(
+                  formatClockTime(
+                    practiceClockTime.hour,
+                    practiceClockTime.minute,
+                  ),
+                )
+              }
+              className={`sm:col-span-4 py-4 rounded-2xl font-black text-2xl border-b-4 transition-all active:scale-95 ${
+                practiceIsCorrect === false
+                  ? "bg-rose-500 hover:bg-rose-600 border-rose-700 text-white"
+                  : "bg-indigo-600 hover:bg-indigo-700 border-indigo-800 text-white"
+              }`}
+            >
+              Check My Clock (
+              {formatClockTime(
+                practiceClockTime.hour,
+                practiceClockTime.minute,
+              )}
+              )
+            </button>
           ) : (
             options.map((opt) => (
               <button
@@ -4737,6 +5623,7 @@ export default function App() {
     const isAnswered = quizLockedChoice !== null;
     const isCoins = currentQ.rule.category === "COINS";
     const isPlaceValue = currentQ.rule.category === "PLACE_VALUE";
+    const isClock = currentQ.rule.category === "CLOCK";
     const unit = currentQ.answerUnit || "";
 
     return (
@@ -4814,6 +5701,27 @@ export default function App() {
               isAnsweredCorrectly={isAnswered}
             />
           </div>
+        ) : isClock ? (
+          <div className="space-y-2">
+            <div className="flex justify-end">
+              <button
+                onClick={() => sound.speak(currentQ.voicePrompt)}
+                className="flex items-center gap-1.5 bg-rose-100 text-rose-900 border-2 border-rose-300 px-3 py-1 rounded-xl font-bold text-sm"
+              >
+                <Volume2 className="w-4 h-4" /> Read Question
+              </button>
+            </div>
+            <InteractiveClockBoard
+              question={currentQ}
+              userTime={quizClockTime}
+              onUserTimeChange={(h, m) =>
+                setQuizClockTime({ hour: h, minute: m })
+              }
+              animStepIndex={quizAnimStep}
+              showHintPreview={false}
+              isAnsweredCorrectly={isAnswered}
+            />
+          </div>
         ) : (
           <div className="bg-indigo-50 p-4 rounded-3xl border-2 border-indigo-200 text-center text-4xl font-black text-indigo-950">
             {currentQ.startNum}{" "}
@@ -4829,29 +5737,63 @@ export default function App() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {currentQ.options.map((opt) => {
-            let style = "bg-white border-indigo-300 text-indigo-950";
-            if (isAnswered) {
-              if (opt === currentQ.answer)
-                style = "bg-emerald-500 border-emerald-700 text-white";
-              else if (opt === quizLockedChoice)
-                style = "bg-rose-500 border-rose-700 text-white";
-              else style = "bg-slate-100 border-slate-200 text-slate-400";
-            }
-            return (
-              <button
-                key={opt}
-                disabled={isAnswered}
-                onClick={() => handleQuizAnswerTap(opt)}
-                className={`py-4 rounded-2xl font-black text-2xl border-b-4 ${style}`}
-              >
-                {opt}
-                {unit}
-              </button>
-            );
-          })}
-        </div>
+        {isClock && currentQ.clock?.qMode === "set_clock" ? (
+          <div className="pt-1">
+            <button
+              disabled={isAnswered}
+              onClick={() =>
+                handleQuizAnswerTap(
+                  formatClockTime(quizClockTime.hour, quizClockTime.minute),
+                )
+              }
+              className={`w-full py-4 rounded-2xl font-black text-2xl border-b-4 transition-all active:scale-95 ${
+                isAnswered
+                  ? quizLockedChoice === currentQ.answer
+                    ? "bg-emerald-500 border-emerald-700 text-white"
+                    : "bg-rose-500 border-rose-700 text-white"
+                  : "bg-indigo-600 hover:bg-indigo-700 border-indigo-800 text-white"
+              }`}
+            >
+              {isAnswered
+                ? quizLockedChoice === currentQ.answer
+                  ? `✅ Correct! (${currentQ.answer})`
+                  : `❌ Answer was ${currentQ.answer}`
+                : `Submit My Clock (${formatClockTime(quizClockTime.hour, quizClockTime.minute)})`}
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+            {currentQ.options.map((opt) => {
+              const isSelected = quizLockedChoice === opt;
+              const isCorrectOpt = opt === currentQ.answer;
+              let btnStyle =
+                "bg-white hover:bg-indigo-50 border-indigo-300 text-indigo-950";
+              if (isAnswered) {
+                if (isCorrectOpt) {
+                  btnStyle =
+                    "bg-emerald-500 border-emerald-700 text-white scale-[1.02]";
+                } else if (isSelected) {
+                  btnStyle = "bg-rose-400 border-rose-600 text-white";
+                } else {
+                  btnStyle =
+                    "bg-slate-100 border-slate-200 text-slate-400 opacity-60";
+                }
+              }
+
+              return (
+                <button
+                  key={opt}
+                  disabled={isAnswered}
+                  onClick={() => handleQuizAnswerTap(opt)}
+                  className={`py-4 rounded-2xl font-black text-2xl border-b-4 transition-all active:scale-95 ${btnStyle}`}
+                >
+                  {opt}
+                  {unit}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   };
